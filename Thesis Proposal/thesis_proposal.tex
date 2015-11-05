@@ -1,6 +1,6 @@
 \documentclass[letterpaper,10pt]{article}
 \usepackage[utf8]{inputenc}
-\usepackage[top=1.25in, bottom=1.25in, left=1.25in, right=1.25in]{geometry}
+\usepackage[top=1in, bottom=1in, left=1in, right=1in]{geometry}
 \usepackage{parskip}
 \usepackage{tabularx}
 \usepackage{qtree}
@@ -38,11 +38,11 @@
 \begin{document}
 
 \maketitle
-\vfill
+
 
 \section{Research Question}
 
-Can we incrementally parse referring expressions to identify objects, given their physical locations?
+We want to parse referring expressions incrementally,  identifying objects in physical scenes.
 
 We assume that we have access to:
 \begin{enumerate}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
@@ -50,7 +50,7 @@ We assume that we have access to:
  \item a language model that, when provided with a noun phrase, can return a probability distribution over objects that it may refer to.
 \end{enumerate}
 
-We use this information to construct an incremental parser that takes, referring expressions as input and produces a probability distribution of possible objects that the expression is identifying.
+We use this information to construct an incremental parser that takes referring expressions as input and produces a probability distribution of possible objects that the expression is identifying.
 
 (This thesis project will build on work done from Fall 2014 to present. Some work was previously completed in collaboration with undergraduate student Zachary Loery.)
 
@@ -134,9 +134,11 @@ Figure~\ref{fig:worked_example_incremental} shows how the distribution over all 
 
 \section{Technical Approach}
 
+Here we describe the general approach of our algorithm, how we parse referring expressions, and how we plan on making parsing both efficient and incremental.
+
 We represent the referring expression as a tree, updating it each time we receive a new token. This representation allows us to perform computationally-intensive tasks once and cache intermediate results. This strategy allows us to produce intermediate results without having to recompute the entire expression so far.
 
-Our technical approach by constructing a semantic tree such that each leaf node in the tree refers to some object. This tree is constructed by tagging the input using conditional random fields and then using deterministic transformations to turn that into a tree. We convert each of the leaf nodes into distributions over objects using a language model, and then finally evaluate this structure to obtain the final distribution. Here is a concrete example: 
+More precisely, we construct a semantic tree such that each leaf node in the tree refers to some object. This tree is constructed by tagging the input using conditional random fields and then using deterministic transformations to turn that into a tree. We convert each of the leaf nodes into distributions over objects using a language model, and then finally evaluate this structure to obtain the final distribution. Here is a concrete example: 
 
 We attempt to locate the \textit{orange cube} using the following referring expression: ``The orange cube between the red thing and the yellow thing.'' A selection of \textit{red}, \textit{blue}, \textit{orange}, \textit{purple}, \textit{green}, and  \textit{yellow} cubes are arranged on a table, as shown in Figure~\ref{fig:worked_example_table}. The orange cube referred to in the above statement is pointed to by a red arrow in the figure. The process of estimating the object from this information is:
 
@@ -276,6 +278,9 @@ These two cases are sufficient to recursively reduce the tree into a single dist
 Incremental parsing will be achieved by using dynamic programming approaches to caching the current estimates of various nodes in the tree, and refining them based on new input. 
 
 \section{Data Collection} 
+
+Training each model that we use requires a lot of data. We collect many examples to train and test our system on as well as run our test set against humans to benchmark the performance of our system against.
+
 We have collected a corpus of human-generated data using Human Intelligence Tasks (HITs) on the Amazon Mechanical Turk platform and hand-generated scenes. We additionally use AMT to have humans evaluate our test set to obtain a baseline.
 
 \subsection{Referring Expression Generation}
@@ -333,6 +338,8 @@ We used Figure~\ref{fig:ref_expr_examples_pic} to elicit referring expressions. 
 \end{itemize}
 
 \section{Current Results}
+
+We have an initial version of the algorithm which operates in batch mode. This, when run against a small test set, yields the results presented here.
 
 \begin{figure}[H]
   \centering
