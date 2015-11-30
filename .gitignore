@@ -1,3 +1,10 @@
+## Mallet files
+mallet/inp.txt
+mallet/out.txt
+
+## Python files
+*.pyc
+
 ## Core latex/pdflatex auxiliary files:
 *.aux
 *.lof
