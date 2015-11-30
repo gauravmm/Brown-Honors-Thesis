@@ -1,3 +1,6 @@
+## Temp files
+~$*.xlsx
+
 ## Mallet files
 mallet/inp.txt
 mallet/out.txt
