@@ -61,8 +61,15 @@ class IncrementalParser(object):
     def getPRPDist(self, k, p):
         if isinstance(p, basestring):
             p = [p];
-        # Map the SNPs to probability:
-        prp_sig = k + "_" + "_".join(p);
+        
+        
+        prp_sig  = "";
+        if k == "BETWEEN":
+            prp_sig = k + "_" + "__".join("_".join(o) for o in p);6
+        else:
+            prp_sig = k + "_" + "_".join(p);
+            
+            
         if prp_sig not in self.prpcache:
             snps = [self.uniformPrior] + [self.getSNPDist(s) for s in p];                    
             
@@ -133,7 +140,7 @@ class IncrementalParser(object):
                             nodes = nodes[2:];
                         else:
                             break;
-                    if nodes[0][0] == "SNP":
+                    if nodes and nodes[0][0] == "SNP":
                         p_between[1].append(nodes[0][1]);
                         nodes = nodes[1:];
                     rv["qual"].append(p_between);
@@ -152,7 +159,7 @@ class IncrementalParser(object):
                 rv["qual"].append((p_type, p_items));
             elif p_type == "CONJ":
                 # Do nothing
-                if PREV_CONJ_ELLIGIBLE and nodes[0][0] == "SNP":
+                if PREV_CONJ_ELLIGIBLE and nodes and nodes[0][0] == "SNP":
                     rv["qual"].append((rv["qual"][-1][0], nodes[0][1]));
                     nodes = nodes[1:];
             else:
@@ -188,7 +195,9 @@ class IncrementalParser(object):
         
 
 def run():
-    inp = ['hand', 'me', 'the', 'orange', 'cube', 'that', 'is', 'in', 'front', 'of', 'yellow', 'bowl'];
+    # inp = ['hand', 'me', 'the', 'orange', 'cube', 'that', 'is', 'in', 'front', 'of', 'yellow', 'bowl'];
+    inp = ['it', 'is', 'the', 'orange', 'cube', 'between', 'the', 'tan', 'and', 'blue', 'bowls', 'near', 'you'];
+
     scene_name = '1';
     
     scenes = load_scenes();
