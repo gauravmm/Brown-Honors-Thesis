@@ -4,7 +4,7 @@ from models import *;
 execfile("./params.py");
 execfile("./unigram.py");
 
-splitpart = "train";
+splitpart = "test";
 #JAVAPATH = "C:\\Program Files\\Java\\jre1.8.0_45\\bin\\java.exe";
 JAVAPATH = "java";
 
