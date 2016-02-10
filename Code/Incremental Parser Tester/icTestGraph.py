@@ -20,6 +20,7 @@ split = load_data(OP_SPLIT_FN);
 tokens = load_data(OP_TOKEN_FN);
 img = load_data(OP_IMAGE_FN);
 preps = load_data("_PRP.tsv");
+irr = load_data("_interrater.csv");
 
 topN = lambda dist, item, N:  dist[item] >= sorted(dist.values())[-N];
 top1 = lambda dist, item:  dist[item] >= max(dist);
@@ -38,14 +39,39 @@ def run():
     rv = load();
     
     #computeBatchTable(rv);
-    plotNCorrectnessByFraction(rv, 5);
+    #plotNCorrectnessByFraction(rv, 5);
     #plotNCorrectnessByWord(rv, 5);
+    computeCorrectnessInterrater(rv);
     
     # scatterEntropy(rv);
     #plotNCorrectnessByWord(rv, 5);
             
     # for i,(sp,tok,(sc,ob)) in enumerate(zip(split, tokens, img)):
+            
+def computeCorrectnessInterrater(rv):
 
+    # Build the interrater dict;
+    intrr = {};
+    for row in irr:
+        intrr[int(row[0])] = int(row[1]);
+    
+    
+    scr = [0, 0, 0, 0];
+    total = [0, 0, 0, 0];
+    top_n_v = 3;
+    
+    for i,(sp,tok,(sc,ob),lprp) in enumerate(zip(split, tokens, img, preps)):
+        if i in rv:
+            dist = rv[i][-1];
+            score = topN(dist, 'orange_' + ob, top_n_v)*1./countSim(dist, dist['orange_' + ob]);
+            
+            for j in range(0, intrr[i] + 1):
+                scr[j] += score;
+                total[j] += 1;
+                
+    for i in range(4):
+        print "%d\t%.1f%%\t%d" % (i, scr[i]*100./total[i], total[i])
+        
 
 def computeBatchTable(rv):
     prepositions = ['BETWEEN', 'NEAR', 'BEHIND', 'IN_FRONT_OF', 'LEFT_OF', 'RIGHT_OF', '*'];
@@ -54,8 +80,10 @@ def computeBatchTable(rv):
     total = dict((p,0) for p in prepositions);
 
     # 'BETWEEN', 'NEAR', 'BEHIND', 'IN_FRONT_OF', 'LEFT_OF', 'RIGHT_OF', '*'
-    human = [.898, .762, .689, .583, .815, .619, .767];
+    human = [.882, .825, .769, .699, .898, .580, .790];
+    unigram = [.143, .172, .157, .179, .161, .154, .161];
     human = dict(zip(prepositions, human));
+    unigram = dict(zip(prepositions, unigram));
     
     for i,(sp,tok,(sc,ob),lprp) in enumerate(zip(split, tokens, img, preps)):
         if i in rv:
@@ -64,8 +92,8 @@ def computeBatchTable(rv):
             tlprp = ['*'] + [p for p in prepositions if p in lprp];
             
             scr = dict((s,0) for s in scoring);
-            scr['Top-1'] = topN(dist, 'orange_' + ob, 1)/countSim(dist, dist['orange_' + ob]);
-            scr['Top-3'] = topN(dist, 'orange_' + ob, 3)/countSim(dist, dist['orange_' + ob]);
+            scr['Top-1'] = topN(dist, 'orange_' + ob, 1)*1./countSim(dist, dist['orange_' + ob]);
+            scr['Top-3'] = topN(dist, 'orange_' + ob, 3)*1./countSim(dist, dist['orange_' + ob]);
             scr['Random'] = 1.0/len(scenes[sc]);
             
             for p in tlprp:
@@ -86,7 +114,10 @@ def computeBatchTable(rv):
             score = (correct[p][s]*100.0/t);
             if s == "Human":
                 score = human[p]*100;
-                
+
+            if s == "Unigram":
+                score = unigram[p]*100;            
+            
             l += "\t& %.1f" % score;
         
         l += " \\\\"
@@ -142,7 +173,7 @@ def plotNCorrectnessByWord(rv, numtot):
                 
                 for k in range(numtot):
                     if topN(dist, 'orange_' + ob, k + 1):
-                        correct[k, j] += 1/countSim(dist, dist['orange_' + ob]);
+                        correct[k, j] += 1./countSim(dist, dist['orange_' + ob]);
     
     print correct;
     
@@ -177,14 +208,16 @@ def plotNCorrectnessByFraction(rv, numtot):
     
     for i,(sp,tok,(sc,ob)) in enumerate(zip(split, tokens, img)):
         if i in rv:
+            print rv[i][0];
+            
             total += 1;
             t = float(len(rv[i]));
-            for k in range(numtot):
+            for k in range(numtot):                    
                 t_x = [(n + 1)/t for n in range(len(rv[i]))];
-                t_corr = [topN(dist, 'orange_' + ob, k + 1)/countSim(dist, dist['orange_' + ob]) for dist in rv[i]];
+                t_corr = [topN(dist, 'orange_' + ob, k + 1)*1./countSim(dist, dist['orange_' + ob]) for dist in rv[i]];
                 correct[k,:] += np.interp(intpX, t_x, t_corr);
     
-    print correct;
+    #print correct;
     
     plt.figure();
     plt.hold("on");
@@ -205,7 +238,7 @@ def plotNCorrectnessByFraction(rv, numtot):
     plt.title("Correctness rate by fraction of sentence.");
     plt.xlabel("Fraction of sentence.");
     plt.ylabel("Fraction correct.");
-    plt.legend(legend_key, legend_val, loc=3);
+    plt.legend(legend_key, legend_val, loc=2);
 
 
 
