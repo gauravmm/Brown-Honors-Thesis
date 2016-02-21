@@ -1,5 +1,5 @@
 import pickle;
-from math import log;
+from math import log, floor;
 import matplotlib.pyplot as plt
 import numpy as np;
 
@@ -37,11 +37,31 @@ def run():
     k = 0;
     
     rv = load();
+
+    for i,(sp,tok,(sc,ob),lprp) in enumerate(zip(split, tokens, img, preps)):
+        if i != 368:
+            continue;
+        if i in rv:
+            dist = rv[i][-1];
+            score = topN(dist, 'orange_' + ob, 1)*1./countSim(dist, dist['orange_' + ob]);
+            
+            if score == 1:
+                print i;
+                print tok;
+                print sc;
+                print ob;
+                for di in rv[i]:
+                    #print di;
+                    v = [di['orange_' + str(o + 1)] for o in range(6)];
+                    print [floor(val * 100) for val in v];
+                    #print [1-floor(val * 100)/100 for val in v];
+
+        #print rv[i];
     
     #computeBatchTable(rv);
     #plotNCorrectnessByFraction(rv, 5);
     #plotNCorrectnessByWord(rv, 5);
-    computeCorrectnessInterrater(rv);
+    #computeCorrectnessInterrater(rv);
     
     # scatterEntropy(rv);
     #plotNCorrectnessByWord(rv, 5);

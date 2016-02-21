@@ -1,5 +1,8 @@
-\documentclass[letterpaper,10pt]{article}
+\documentclass[conference]{IEEEtran}
+%\documentclass[letterpaper,10pt]{article}
+
 \usepackage[utf8]{inputenc}
+\usepackage{kpfonts}
 \usepackage[top=1in, bottom=1in, left=1in, right=1in]{geometry}
 \usepackage{parskip}
 \usepackage{tabularx}
@@ -19,11 +22,30 @@
 \usepackage{pgfplots}
 \usepackage{pbox}
 \usepackage{framed}
-\usepackage{titlesec}
 \usepackage[authordate,bibencoding=auto,strict,backend=biber,natbib]{biblatex-chicago}
+\usepackage{comment}
 \usepackage{enumitem}
-\usepackage{todonotes}
+\usepackage{float}
+\usepackage{dblfloatfix}
+\usepackage{afterpage}
+
+
 \renewcommand{\cite}{\citep}
+\numberwithin{equation}{section}
+\renewcommand{\tabularxcolumn}[1]{>{\small}m{#1}}
+
+\def\topfraction{0.9} % 90 percent of the page may be used by floats on top
+\def\bottomfraction{0.9} % the same at the bottom
+\def\textfraction{0.01}
+
+
+%\pdfinfo{
+%   /Author (Gaurav Manek)
+%   /Title  (Incrementally Identifying Objects from Referring Expressions using Spatial Object Models)
+%   /CreationDate (D:20160210120000)
+%   /Subject (Incremental Parsing)
+%   /Keywords (Incremental;Parsing;Referring Expressions;Prepositions)
+%}
 
 %\newcommand{\sectionbreak}{\clearpage}
 
@@ -50,121 +72,95 @@
 
 \section{Introduction}
 
-In any task with robot-computer collaboration, the success of the task depends on the ability of robots to interact well with humans. Of particular interest is the problem of \emph{social feedback}, where the robot shows its understanding of a human's utterances by generating small responses as it listens to the human. Providing social feedback during human-robot interaction requires robots to be able to parse the human input \emph{incrementally}: updating its understanding as each next word is uttered. In this paper, we present an incremental model for parsing referring expressions.
+The problem of parsing \emph{referring expressions} is important, but hard. Referring expressions are phrases used to identify a particular object in a scene by describing it and its relative position to other objects in the same scene. The integration of \emph{social feedback}, where the robot shows its understanding of a human's utterances by generating small responses as it listens to the human, can prompt clarifications from the human and improve the accuracy of referring expression parsing in interactive contexts. However, this requires robots to be able to parse the human input \emph{incrementally}: updating its understanding as each next word is uttered. In this paper, we present an incremental model for parsing referring expressions. 
 
-Referring expressions are phrases used to identify a particular object in a scene by describing it and its relative position to other objects in the same scene.
+In current work, referring expression parsing is done in batch-mode, with the entire referring expression as input. \citep{tellex2011understanding,UW_RSE_ICML2012,artzi2013weakly,fang2015embodied} Since the robot is presented with the input one word at a time, batch-mode requires waiting for the complete utterance before processing and providing output, which takes time to complete. For example, practical implementations of the $G^3$ system, as created by \citet{tellex2011understanding}, can take up to 30 seconds from the end of the input to the start of a response. Our incremental parsing system updates the distribution with each added word, substantially reducing the delay between input and response.
 
-Incremental parsing allows the robot to provide social feedback to the human. The robot could, for example, transition from a confused to a smiling face as more input words reduce the uncertainty of the referring expression. Referring expression parsing is also closely related to the common robot task of pick-and-place, and could thus be a useful improvement for the Baxter robot and the H2R lab. 
-
-In current work, referring expression parsing is done in batch-mode, with the entire referring expression as input. The $G^3$ framework by \citet{tellex2011understanding}, work done by \citet{UW_RSE_ICML2012}, and the parser developed by \citet{artzi2013weakly}, all require a complete sentence. Since the robot is presented with the input one word at a time, batch-mode requires waiting for the complete utterance before processing and providing output, which takes time to complete. For example, practical implementations of the $G^3$ system can take up to 30 seconds from the end of the input to the start of a response. 
-
-Our incremental parsing system updates the distribution with each added word, substantially reducing the delay between input and response.
-
-We assume that we have access to a model that maps an arbitrary noun phrase (without prepositions) to a probability distribution over objects that the noun phrase may refer to.
-
-(This thesis project is the culmination of work done from Fall 2014 to present. Some work was previously completed in collaboration with undergraduate student Zachary Loery.)
-
-
-\subsection{Examples}
-Parsing a referring expression and finding a distribution over possible objects has been accomplished by \citet{tellex2011understanding},\citet{UW_RSE_ICML2012}, and \citet{artzi2013weakly}, among others. Here we present some examples of referring expressions.
-
-Given a \textit{red apple}, \textit{blue tape}, \textit{red bowl}, and a \textit{metal bowl} scattered on a table, we want to be able to convert referring expressions similar to these into probability distributions over the objects:
-\begin{enumerate}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
- \item ``The object between the apple and the tape.''
- \item ``The red object.''
- \item ``The red thing on the left of the bowl.''
- \item ``The red thing on the left.''
- \item ``The thing on the left of the bowl.''
-\end{enumerate}
-
-We want to be able to parse these referring expressions incrementally. Given the referring expression ``The orange cube between the red and the yellow'' to refer to the indicated object in 
-Figure~\ref{fig:worked_example_table}, our model should give better estimations of the correct object as we receive more words in the referring expression. Figure~\ref{fig:worked_example_incremental} shows how the distribution over all objects changes with more words of the referring expression.
+Figure~\ref{fig:worked_example} shows an example of the incremental parsing of a referring expression. As more words are available to the parser, the parser identifies the target object by assigning it the highest probability.
 
 \begin{figure}[h!tb]
   \centering
-    \includegraphics[width=0.66\textwidth]{worked_example_scene}
-  \caption{Arrangement of objects on a table.}
-  \label{fig:worked_example_table}
-\end{figure}
-\begin{figure}[h!tb]
-  \centering
+    \fbox{\includegraphics[width=0.9\columnwidth]{worked_example_scene}}
+  \label{fig:worked_example}
+
 
 \newcommand{\dist}[8]{\begin{tikzpicture}[trim axis left]
 \begin{axis}[
-	width=1.2in,
-	height=0.6in,
+	ybar stacked,
+	width=0.6in,
+	height=0.3in,
 	scale only axis,
 	xticklabel=\empty,
-	xtick=\empty,
+	xtick=data,
 	ytick=\empty,
-	xlabel=Object,
-	x label style={yshift=10pt},
+%	x label style={yshift=10pt},
 	y label style={yshift=-24pt},
-	ybar interval=0.9,
-	enlarge x limits=-0.3,
-	ymax=1.1, ymin=0.0,
-	xmin=1, xmax=9,
+	ymax=0.9, ymin=0.0,
+	xmin=0.5, xmax=8.5,
+    bar width=4
 ]
-\addplot 
-	coordinates {(1,#1) (2,#2)
-		 (3,#3) (4,#4) (5,#5) (6,#6) (7,#7) (8,#8) (9,0) };
+
+
+\addplot [fill=orange]
+	coordinates {(1,0) (2,0)
+		 (3,#3) (4,#4) (5,0) (6,0) (7,#7) (8,0) (9,0) };
+		 
+\addplot [fill=green!50!black]
+	coordinates {(1,0) (2,#2)
+		 (3,0) (4,0) (5,#5) (6,0) (7,0) (8,0) (9,0) };
+
+\addplot [fill=blue!75!white]
+	coordinates {(1,#1) (2,0)
+		 (3,0) (4,0) (5,0) (6,#6) (7,0) (8,#8) (9,0) };
+		 
 \end{axis}
 \end{tikzpicture}}
 
+\renewcommand{\arraystretch}{0.7}% Tighter
 \begin{tabular}{cccc}
-\dist{0.1}{0.1}{0.1}{0.1}{0.1}{0.1}{0.1}{0.1} & \dist{0.2}{0.01}{0.2}{0.2}{0.01}{0.01}{0.2}{0.01} &\dist{0.3}{0.01}{0.3}{0.1}{0.01}{0.01}{0.3}{0.01} & \dist{0.05}{0.}{0.8}{0.05}{0.}{0.}{0.05}{0.} \\
-\textit{``The\ldots} &
-\textit{\ldots orange cube\ldots} &
-\textit{\ldots between the red\ldots} &
-\textit{\ldots and the yellow.''} \\
+~ \\
+\dist{0.2}{0.2}{0.2}{0.2}{0.2}{0.2}{0.2}{0.2} & \dist{0.1}{0.1}{0.4}{0.4}{0.1}{0.1}{0.4}{0.1} &\dist{0.1}{0.1}{0.5}{0.2}{0.1}{0.1}{0.5}{0.1} & \dist{0.05}{0.05}{0.8}{0.1}{0.05}{0.05}{0.1}{0.05} \\
+\multicolumn{2}{l}{\textit{``The}\hfill\textit{\ldots orange cube}} \\
+\multicolumn{3}{r}{\textit{\ldots between the red}} & \\
+\multicolumn{4}{r}{\textit{\ldots and the yellow.''}} \\
 \end{tabular}
-  \caption{Sample probability distribution over all objects, updated incrementally.}
-  \label{fig:worked_example_incremental}
+\renewcommand{\arraystretch}{1}
+
+  \caption{Sample probability distribution over objects distributed on the table, updated incrementally.}
 \end{figure}
+
+This thesis project is the culmination of work done from Fall 2014 to present. Some work was previously completed in collaboration with undergraduate student Zachary Loery.
 
 
 \section{Technical Approach}
 
-Here we provide a top-down view of the algorithm, factoring the probability and explicitly noting the assumptions made at each step.
-
-Given a sequence of words $w_1, w_2, \ldots, w_t$, we estimate $T$, the distribution of the object the user is referring to.
-\begin{align*}
-	& \Pr(T = o | w_1, w_2, \ldots, w_t)
-\intertext{We then assume that we can factor the sequence of words into separate independent ranges, each of which corresponds to either a description of the object (e.g. ``the orange cube'') or a prepositional phrase (e.g. ``between the \ldots''). We assume these to be independent and factor the expression:}
-   = & \Pr(X_1 = o \land X_2 = o \land \ldots | w_1, w_2, \ldots, w_t)
-\\ = & \Pr(X_1 = o | w_1, w_2) \cdot \Pr(X_2 = o | w_3, w_4, w_5) \cdot \ldots
-\end{align*}
-
-The splitting of the sentence into separate groups is done using a chunking algorithm, which we discuss in Section \ref{sec:tagging}. We assume that the chunkings given here are certain, and so eliminate the probability term associated with that.
-
-\begin{align*}
-\intertext{Each of these expressions can either be describing the target object or describing the location of the target object using a preposition. In the former case, we use a unigram model (detailed in Section \ref{sec:unigram}) to estimate this probability.}
-	\Pr(X_i = o | w_1, \ldots, w_k) & \appropto \prod_{w_i \in (w_0, w_1, \cdots)} \left( (1 - \alpha) * \frac{Q(o, w_i)}{\sum_{\Omega} Q(\Omega, w_i)} + \alpha * \frac{1}{k} \right)
-\intertext{In the latter case, we convert the expression to a combination of a preposition and at least one other distribution over objects. We parameterize the distribution using a feature-vector generator $f$, weights $\theta_p$, normalizing factor $z$, and sigmoid functon $S$. The probabilities $\Pr(X_{i_j} = o_j | w_1, \ldots, w_k)$ are factored as above. Details of this process are in Section \ref{sec:bottomupeval}}.
-\Pr(X_i = o | w_1, \ldots, w_k) & = \Pr(X_i = o | P = p, X_{i_1}, X_{i_2}, \ldots) \cdot \Pr(P = p, X_{i_1}, X_{i_2}, \ldots | w_1, \ldots, w_k)
-\\ & \appropto \sum_{o_1, o_2, \cdots o_n \in O} \text{S}\left( \frac{f(o_1, o_2, \cdots, o_n) \cdot \theta_p}{z} \right) \cdot \prod_{j = 1}^n \Pr(X_{i_j} = o_j | w_1, \ldots, w_k)
-\end{align*}
+Given a sequence of words $\Lambda_\circ = \lambda_1, \lambda_2, \ldots, \lambda_t$, we estimate $\Gamma$, the distribution of the object the user is referring to. $\Gamma$ is a distribution over $\xi$, the set of all objects on the table.
+\begin{align}
+	& \Pr(\Gamma = \gamma | \lambda_1, \lambda_2, \ldots, \lambda_t)
+\end{align}
+We then assume that we can factor the sequence of words into separate independent constituents ($\Lambda_1, \Lambda_2, \ldots, \Lambda_k$), according to the compositional structure of language \citep{heim1998semantics}, each of which corresponds to either a description of the object (e.g. ``the orange cube'') or a prepositional phrase (e.g. ``between the \ldots''). We assume these to be independent and factor the expression:
+\begin{align}
+   = & \Pr(\Gamma = \gamma | \Lambda_1, \Lambda_2, \ldots, \Lambda_k) 
+\\ = & \Pr(\Gamma_1 = \gamma \land \Gamma_2 = \gamma \land \ldots | \Lambda_1, \Lambda_2, \ldots, \Lambda_k)
+\\ = & \prod_{g=1}^k \Pr(\Gamma_g = \gamma | \Lambda_g) 
+\end{align}
 
 
-\subsection{Algorithm}
-
-The algorithm we present uses the factorization presented above but operates in a bottom-up manner. We represent the referring expression as a tree, updating it each time we receive the next word from the user. This representation allows us to perform computationally-intensive tasks only once and cache intermediate results, allowing us to produce intermediate results without having to recompute them.
-
-More precisely, we construct a semantic tree such that each leaf node in the tree is a noun-phrase that refers to some object. This tree is constructed by chunking the input using conditional random fields and then using deterministic transformations to turn the chunked input into a tree. We convert each of the leaf nodes into distributions over objects using a language model, and then finally evaluate this structure to obtain the final distribution. Here is a concrete example: 
-
-We attempt to locate the \textit{orange cube} using the following referring expression: ``The orange cube between the red thing and the yellow thing.'' A selection of \textit{red}, \textit{blue}, \textit{orange}, \textit{purple}, \textit{green}, and  \textit{yellow} cubes are arranged on a table, as shown in Figure~\ref{fig:worked_example_table}. The orange cube referred to in the above statement is pointed to by a red arrow in the figure. The process of estimating the object from this information is:
-
-\renewcommand{\tabularxcolumn}[1]{>{\small}m{#1}}
+\afterpage{%
+\begin{figure*}[tb]
 \begin{tabularx}{\textwidth}{@{} >{\hsize=.5\hsize \centering}X >{\hsize=.45\hsize}X @{}} 
 \multicolumn{2}{c}{``The orange cube between the red thing and the yellow thing.''} \\ 
 \multicolumn{2}{c}{$\Downarrow$} \\ 
 % Chunking	
+\begin{tabular}{c}
 $\underbrace{\text{The orange cube}}_{\texttt{SNP}}$
 $\underbrace{\text{between}}_{\texttt{PRP}}$
 $\underbrace{\text{the red thing}}_{\texttt{SNP}}$
+\\
 $\underbrace{\text{and}}_{\texttt{PRP}}$
 $\underbrace{\text{the yellow thing}}_{\texttt{SNP}}$
 $\underbrace{\text{.}}_{\texttt{.}}$
+\end{tabular}
 & 
 \textbf{Chunking}
 
@@ -204,6 +200,38 @@ We use a language model to convert each of the simple noun phrases into individu
 
 We evaluate the tree from the bottom upwards, using spatial features and trained weights to convert each input distribution and the type of preposition into a set of output scores. The final result is the object with the highest score.
 \end{tabularx}
+\caption{The processing steps in our algorithm.}
+\label{fig:proc_flow}
+\end{figure*}
+\clearpage
+}
+
+In general, this factorization is done using a chunking algorithm, which we discuss in Section \ref{sec:tagging}. We assume that the chunkings given here are certain, and so eliminate the probability term associated with that. For speed, we approximate with a chunking which has been shown to give good results in practice.
+\begin{align}
+\intertext{Each of these expressions can either be describing the target object or describing the location of the target object using a preposition. In the former case, we use a unigram model (detailed in Section \ref{sec:unigram}) to estimate this probability.}
+   & \Pr(\Gamma_i = \gamma | \Lambda_j)
+\\ & = \frac{\Pr(\Gamma_i = \gamma \cap \Lambda_j)}{\Pr(\Lambda_j)}
+\\ & \propto \Pr(X_i = o \cap \Lambda_j)
+\\ & = \prod_{\lambda \in \Lambda_j} \left( (1 - \alpha) * \frac{Q(\gamma, \lambda)}{\sum_{\omega} Q(\omega, \lambda)} + \frac{\alpha}{k} \right) \label{eqn:unigram_model}
+\intertext{In the latter case, we convert the expression to a combination of a preposition and at least one other distribution over objects. We parameterize the distribution using a feature-vector generator $f:\Gamma\to\mathbb{R}^{|\theta_p|}$, weights $\theta_p$, normalizing factor $z$, and sigmoid functon $S$. The probabilities $\Pr(\Gamma_{i_h} = \gamma_h | \Lambda_j)$ are factored as above. Details of this process are in Section \ref{sec:bottomupeval}.}
+   & \Pr(\Gamma_i = \gamma | \Lambda_j) 
+\\ \begin{split}
+& = \Pr(\Gamma_i = \gamma | P = p, \Gamma_{i_1}, \Gamma_{i_2}, \ldots) 
+\\ & \phantom{=}~\cdot \Pr(P = p, \Gamma_{i_1}, \Gamma_{i_2}, \ldots | \Lambda_{j})
+\end{split}
+\\ \begin{split}
+   & \propto \text{S}\left( \frac{f(\gamma, \gamma_1, \ldots, \gamma_h, \ldots) \cdot \theta_p}{z} \right) \cdot \prod_{h} \Pr(\Gamma_{i_h} = \gamma_h | \Lambda_j)
+\end{split}
+\end{align}
+
+
+\subsection{Algorithm}
+
+The algorithm we present uses the factorization presented above but operates in a bottom-up manner. We represent the referring expression as a tree, updating it each time we receive the next word from the user. This representation allows us to perform computationally-intensive tasks only once and cache intermediate results, allowing us to produce intermediate results without having to recompute them.
+
+More precisely, we construct a semantic tree such that each leaf node in the tree is a noun-phrase that refers to some object. This tree is constructed by chunking the input using conditional random fields and then using deterministic transformations to turn the chunked input into a tree. We convert each of the leaf nodes into distributions over objects using a language model, and then finally evaluate this structure to obtain the final distribution. Here is a concrete example: 
+
+We attempt to locate the \textit{orange cube} using the following referring expression: ``The orange cube between the red thing and the yellow thing.'' A selection of \textit{red}, \textit{blue}, \textit{orange}, \textit{purple}, \textit{green}, and  \textit{yellow} cubes are arranged on a table, as shown in Figure~\ref{fig:worked_example}. The orange cube referred to in the above statement is pointed to by a red arrow in the figure. The process of estimating the object from this information is in Figure~\ref{fig:proc_flow}
 
 % \subsection{Mathematical Models}
 % We have already devised mathematical models to evaluate referring expressions in batch mode. One of the tasks in this project is to factor these models for incremental use.
@@ -219,14 +247,10 @@ The transformation from the tagged sequence to the semantic tree is entirely det
 \label{sec:langmod_obj}
 \label{sec:unigram}
 
-The language model used is a unigram language model, where each word $w_j$ refers to object $o$ with some joint score $Q(o, w_i)$ that we can estimate statistically. 
-
-The distribution of simple noun phrase $w_1, \ldots, w_k$ referring to object $o$ is, therefore:
-
+The language model used is a unigram language model, where each word $\lambda$ refers to object $\gamma$ with some joint score $Q(\gamma, \lambda)$ that we can estimate statistically. The distribution of simple noun phrase $\Lambda_j$ referring to object $\gamma$ is given by Equation~\ref{eqn:unigram_model}, reproduced here.
 \begin{align*}
-	\Pr(X_i = o | w_1, \ldots, w_k) & = \frac{\Pr(X_i = o \cap w_1, \ldots, w_k)}{\Pr(w_1, \ldots, w_k)}
-\\ & \propto \Pr(X_i = o \cap w_1, \ldots, w_k)
-\\ & \approx \prod_{w_i \in (w_0, w_1, \cdots)} \left( (1 - \alpha) * \frac{Q(o, w_i)}{\sum_{\Omega} Q(\Omega, w_i)} + \alpha * \frac{1}{k} \right)
+\Pr(\Gamma_i = \gamma | \Lambda_j)
+& \propto \prod_{\lambda \in \Lambda_j} \left( (1 - \alpha) * \frac{Q(\gamma, \lambda)}{\sum_{\omega} Q(\omega, \lambda)} + \frac{\alpha}{k} \right)
 \end{align*}
 
 For smoothing, we assume that there is some small probability $\alpha$ that the object is uniformly at random chosen without regard to the word. We arbitrarily set $\alpha \approx 5\%$.
@@ -235,65 +259,60 @@ For smoothing, we assume that there is some small probability $\alpha$ that the 
 \label{sec:bottomupeval}
 Once we have a semantic tree, we can simplify the tree in a bottom-up manner to obtain the final distribution. Figure~\ref{fig:bottom_up_eval} illustrates this process and the three possible cases we apply to convert the tree into a distribution over objects.
 
-\begin{figure}[h!tb]
+\begin{figure*}[b]
   \centering
 \begin{tabular}{ccccccc}
 \Tree [.$\circ$ \emph{The orange cube} [.{\emph{between}} \emph{the red} \emph{the yellow} ]] &
 \pbox{0.2in}{\vspace{0.5in}
 $\Rightarrow$} &
-\Tree [.$\circ$ $X_1$ [.{Preposition $p \in P$} $X_2$ $X_3$ ]] &
+\Tree [.$\circ$ $\Gamma_1$ [.{Preposition $p \in P$} $\Gamma_2$ $\Gamma_3$ ]] &
 \pbox{0.2in}{\vspace{0.5in}
 $\Rightarrow$} &
-\Tree [.{$\circ$} $X_1$ $T_1$ ]
+\Tree [.{$\circ$} $\Gamma_1$ $\Gamma_4$ ]
 &
 \pbox{0.2in}{\vspace{0.5in}
 $\Rightarrow$} & 
-\Tree [.{$\circ$} $T_0$ ]
+\Tree [.{$\circ$} $\Gamma$ ]
 \\ 
 \multicolumn{2}{r}{\textbf{(Case 0)}} & \multicolumn{2}{r}{\textbf{(Case 1)}} & \multicolumn{2}{r}{\textbf{(Case 2)}}
 \end{tabular}
 \caption{The three cases of bottom-up evaluation.}
   \label{fig:bottom_up_eval}
-\end{figure}
+\end{figure*}
 
-\paragraph{Case 0} Simplifying noun-phrases into a distribution.
+\textbf{\textsc{Case 0}} Simplifying noun-phrases into a distribution.
 
-Each grounding in the tree is modeled by a distribution that is obtained from the language model. We have described how this is done in Section~\ref{sec:langmod_obj}. A simple implementation will be able to perform a lookup in $\mathcal{O}(|\bm w|)$ time, where $|\bm w|$ is the number of words in a single grounding.
+Each grounding in the tree is modeled by a distribution that is obtained from the language model. We have described how this is done in Section~\ref{sec:langmod_obj}. A simple implementation will be able to perform a lookup in $\mathcal{O}(|\Lambda_j|)$ time, where $|\Lambda_j|$ is the number of words in $\Lambda_j$.
 
-\paragraph{Case 1} Simplifying a preposition and associated noun-phrases.
+\textbf{\textsc{Case 1}} Simplifying a preposition and associated noun-phrases.
 
-We have preposition $p \in P = $ \{near, left, right, front, behind, between\}. Each grounding that the preposition relies on is modeled by the distributions $X_1, X_2, \cdots X_n$, obtained from the language model. $T$ is the distribution of the object that the user is referring to.
-
-In Figure~\ref{fig:bottom_up_eval}, we illustrate how we simplify preposition $p$ with groundings $X_1$ and $X_2$ into a single distribution $T_1$.
-
-We find $T$ with:
-\begin{align*}
-\Pr(T = o) & = \Pr(T = o | X_1, X_2, \cdots X_n, P = p)
-\end{align*}
-\begin{align*}
+We have preposition $p \in P = $ \{`near', `left', `right', `front', `behind', `between'\}. Each grounding that the preposition relies on is modeled by the distributions $\Gamma_1, \Gamma_2, \cdots \Gamma_n$, obtained from the language model (See Case 0). $\Gamma$ is the distribution of the object that the user is referring to. We find $\Gamma$ with:
+\begin{align}
+& \Pr(\Gamma = \gamma|\Lambda_j) = \Pr(\Gamma = \gamma | \Gamma_1, \cdots \Gamma_n, P = p, \Lambda_j)
 \intertext{Assume that each grounding is independent and factor the expression:}
-& \propto \sum_{o_1, o_2, \cdots o_n \in O} \Pr(T = o \cap P = p \cap X_1 = o_1, X_2 = o_2, \cdots X_n = o_n)
-\\ & = \sum_{o_1, o_2, \cdots o_n \in O} \Pr(T = o \cap P = p | X_1 = o_1, X_2 = o_2, \cdots X_n = o_n) \cdot \Pr(X_1 = o_1, X_2 = o_2, \cdots X_n = o_n)
-\intertext{Parametrize the probability with feature-vector function $f$, weights $\theta_p$, logistic function $S$, and some normalization factor $z$:}
-& = \sum_{o_1, o_2, \cdots o_n \in O} \text{S}\left( \frac{f(o_1, o_2, \cdots, o_n) \cdot \theta_p}{z} \right) \cdot \prod_{i = 1}^n \Pr(X_i = o_i)
-\end{align*}
+& \propto \sum_{\gamma_1, \ldots, \gamma_n} \Pr(\Gamma = \gamma \cap P = p \cap \Gamma_1 = \gamma_1, \ldots, \Gamma_n = \gamma_n, \Lambda_j)
+\\ & = \sum_{\gamma_1, \ldots, \gamma_n}  \begin{array}{l}
+    \Pr(\Gamma = \gamma \cap P = p | \Gamma_1 = \gamma_1, \ldots, \Gamma_n = \gamma_n)
+\\  ~\cdot \Pr(\Gamma_1 = \gamma_1, \ldots, \Gamma_n = \gamma_n | \Lambda_j)
+\end{array}
+\intertext{Parametrize the first term with feature-vector function $f$, weights $\theta_p$, logistic function $S$, and some normalization factor $z$:}
+& = \text{S}\left( \frac{f(\gamma, \gamma_1, \ldots, \gamma_n) \cdot \theta_p}{z} \right) \cdot \prod_{h} \Pr(\Gamma_{i_h} = \gamma_h | \Lambda_j)
+\end{align}
 
 We can estimate $\theta_p$ for each $p$ using logistic regression, and select feature-vector function $f$ separately.
 
-We observe that the na\"ive implementation takes time to the order of $\mathcal{O}(|O|^{n+1})$, where $|O|$ is the number of objects and $n$ is the number of groundings that each preposition has.
+We observe that the na\"ive implementation takes time to the order of $\mathcal{O}(|\xi|^{n+1})$, where $|\xi|$ is the number of objects and $n$ is the number of groundings that each preposition has.
 
-\paragraph{Case 2} Combining multiple distributions.
+\textbf{\textsc{Case 2}} Combining multiple distributions.
 
-In Figure~\ref{fig:bottom_up_eval}, we illustrate how we simplify groundings $X_1$ and independently derived distribution $T_1$ to get $T_0$, our estimated distribution.
-
-In cases where we have multiple distributions, we estimate the true distribution by assuming each of $X_1, X_2, \cdots X_n$ are independent and taking the joint probability, assuming a uniform prior over all objects:
+In Figure~\ref{fig:bottom_up_eval}, we simplify groundings $\Gamma_1$ and derived distribution $\Gamma_2$ to get $\Gamma$, our estimated distribution. This case describes the simplification process. In cases where we have multiple distributions, we estimate the true distribution by assuming each of $\Gamma_1, \Gamma_2, \cdots \Gamma_n$ are independent and taking the joint probability, assuming a uniform prior over all objects:
 \begin{align*}
-\Pr(T = o) & = \Pr(T = o | X_1, X_2, \cdots X_n)
-\\ & = \Pr(X_1 = o, X_2 = o, \cdots X_n = o)
-\\ & = \prod_{i = 1}^n\Pr(X_i = o)
+\Pr(\Gamma = \gamma) & = \Pr(\Gamma = \gamma | \Gamma_1, \Gamma_2, \cdots \Gamma_n)
+\\ & = \Pr(\Gamma_1 = \gamma, \Gamma_2 = \gamma, \cdots \Gamma_n = \gamma)
+\\ & = \prod_{i = 1}^n\Pr(\Gamma_i = \gamma)
 \end{align*}
 
-The na\"ive implementation also takes time to the order of $\mathcal{O}(|O|^{n+1})$, where $|O|$ is the number of objects and $n$ is the number of groundings for which the marginal distribution must be taken.
+The na\"ive implementation also takes time to the order of $\mathcal{O}(|\xi|^{n+1})$, where $|\xi|$ is the number of objects and $n$ is the number of groundings for which the marginal distribution must be taken.
 
 These cases are sufficient to recursively reduce the tree into a single distribution.
 
@@ -301,7 +320,7 @@ These cases are sufficient to recursively reduce the tree into a single distribu
 
 In the previous section we factored the simplification of the semantic tree into three separate cases. We cache the result of each simplifying step, as illustrated in Figure~\ref{fig:incremental_caching}.
 
-\begin{figure}[h!tb]
+\begin{figure*}[b]
   \centering
 \begin{tabular}{ccccc}
 \Tree [.$\circ$ [.\fbox{cache miss} [.\fbox{cache miss} \emph{The orange cube} ] ]] &
@@ -312,11 +331,11 @@ $\Rightarrow$} &
 $\Rightarrow$} &
 \Tree [.$\circ$ [.\fbox{cache miss} [.\fbox{cache hit} \emph{The orange cube} ] [.\fbox{cache miss} [.{\emph{between}} [.\fbox{cache hit} \emph{the red} ] [.\fbox{cache miss} \emph{the yellow} ]]]]]
 \\ \hline
-``The orange cube & & between the red  & & and the yellow.''
+``The orange cube & & \ldots between the red  & & \ldots and the yellow.''
 \end{tabular}
 \caption{Cache behavior as words are added.}
   \label{fig:incremental_caching}
-\end{figure}
+\end{figure*}
 
 \subsubsection{Runtime Analysis}
 
@@ -324,9 +343,9 @@ We use the runtime analysis of each separate case to draw conclusions about the 
 
 Given the addition of one word, we need to make at most one more recursive simplification than the depth of the tree. In all our training data, the maximum tree depth observed is never more than two, so an upper bound of three simplifications per word input means that this algorithm can easily meet the runtime requirements of online algorithms.
 
-More formally, given the runtimes and caching behavior discussed earlier, the worst-case time to update the distribution $T_0$ to include the next word from the user is $\mathcal{O}(|\bm w|) \prod_i^{k-1} \mathcal{O}(|O|^{n+1}) = \mathcal{O}(|\bm w| * |O|^{kn})$, where $k$ is the number of layers in the tree.
+More formally, given the runtimes and caching behavior discussed earlier, the worst-case time to update the distribution $\Gamma$ to include the next word from the user is $\mathcal{O}(|\Lambda|) \prod_i^{k-1} \mathcal{O}(|\xi|^{n+1}) = \mathcal{O}(|\Lambda| * |\xi|^{kn})$, where $k$ is the number of layers in the tree.
 
-When $k = 3$ and $n \leq 2$, as in real-world examples, this instead evaluates to the very manageable $\mathcal{O}(|\bm w| * |O|^{4})$, where $|\bm w|$ is the number of words in the simple noun phrase, and $|O|$ is the number of objects in the scene.
+When $k = 3$ and $n \leq 2$, as in real-world examples, this instead evaluates to the very manageable $\mathcal{O}(|\Lambda| * |\xi|^{4})$, where $|\Lambda|$ is the number of words in the simple noun phrase, and $|\xi|$ is the number of objects in the scene.
 
 \subsubsection{Chunking with Conditional Random Fields}
 
@@ -338,7 +357,7 @@ The worst-case runtime scales linearly with the look-ahead limit. To characteriz
 
 We found that...
 
-\fbox{\parbox[b][2em][t]{\textwidth}{\textbf{Todo} Characterize the penalty associated with CRF-retagging leading to recomputation. Some basic probing shows that it isn't much after the first three or four words, but I would like to characterize this better.}}
+\fbox{\parbox[b][5.5em][t]{\columnwidth}{\textbf{Todo} Characterize the penalty associated with CRF-retagging leading to recomputation. Some basic probing shows that it isn't much after the first three or four words, but I would like to characterize this better.}}
 
 \subsection{Technical Approach Conclusion}
 
@@ -355,18 +374,18 @@ We have collected a corpus of human-generated data using Human Intelligence Task
  \subsection{Referring Expression Generation}
 A set of HITs were created to elicit referring expressions. A total of 19 scenes were constructed, each with a set of about 12 to 15 objects scattered on a table and at least 6 identical orange cubes. For each orange cube in each scene, 9 different workers were told to ask a robot across the table for the indicated orange cube. Figure~\ref{fig:ref_expr_examples_pic} provides an example of such a labeled scene.
 
-\begin{figure}[htb]
+\begin{figure}[!h]
   \centering
-    \includegraphics[width=0.75\textwidth]{ref_expr_examples_pic}
+    \fbox{\includegraphics[width=0.95\columnwidth]{ref_expr_examples_pic}}
   \caption{Example picture provided to AMT workers to elicit referring expressions.}
   \label{fig:ref_expr_examples_pic}
 \end{figure}
 
-We provide the following instructions to respondents:
+We provide the following instructions:
 
 \begin{framed}
 You are standing across the table from a robot. Write down what you would say to the robot if you wanted the indicated orange cube on the table.
-\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex,leftmargin=1em]
 \item Use phrases like "between", "near", "left of", "right of", "in front of" and "behind".
 \item Use front/behind/left/right from the robot's perspective, as labeled in the image. 
 \item All orange cubes look the same.
@@ -379,9 +398,9 @@ You are standing across the table from a robot. Write down what you would say to
 
 For each referring expression in the test set, we get three separate human raters to identify the target and provide feedback on the ease of understanding of the referring expression. Figure~\ref{fig:ref_expr_eval_pic} shows an example scene.
 
-\begin{figure}[h!tb]
+\begin{figure}[!h]
   \centering
-    \fbox{\includegraphics[width=0.90\textwidth]{ref_expr_eval_pic}}
+    \fbox{\includegraphics[width=0.95\columnwidth]{ref_expr_eval_pic}}
   \caption{Example picture provided to AMT workers to evaluate referring expressions.}
   \label{fig:ref_expr_eval_pic}
 \end{figure}
@@ -402,7 +421,7 @@ We received referring expressions from human AMT workers. These referring expres
 
 After training our model on the training set, we tested it using a test set of 10 scenes, each with an average of 14 objects, for a total of 381 input sentences. The result of running the parser on complete referring expressions is in Figure~\ref{fig:results}.
 
-\begin{figure}[H]
+\begin{figure*}[!tb]
   \centering
   \begin{tabular}{| r r | c | c | c || c c |} \hline
      & & \multicolumn{5}{c|}{Rate of correct identification, Test (\%)} \\
@@ -419,7 +438,28 @@ After training our model on the training set, we tested it using a test set of 1
   \end{tabular}
   \caption{Performance on test set.}
   \label{fig:results}
-\end{figure}
+\end{figure*}
+
+\begin{comment}
+\begin{figure*}[!htb]
+  \centering
+  \begin{tabular}{| r r | c | c | c || c c |} \hline
+     & & \multicolumn{5}{c|}{Rate of correct identification, Test (\%)} \\
+     & & \multicolumn{3}{c||}{Baselines} & \multicolumn{2}{c|}{Results} \\
+     \multicolumn{2}{|c|}{Preposition}
+			                      &   Human & Unigram & Random &  Top-1 & Top-3 \\\hline
+26.8\% & \textit{between}       & 88.2  & 14.3  & 7.1   & 71.6  & 94.1 \\
+21.3\% & \textit{near}          & 82.5  & 17.2  & 7.3   & 7.9   & 51.1 \\
+14.2\% & \textit{behind}        & 76.9  & 15.7  & 6.9   & 25.9  & 75.9 \\
+11.0\% & \textit{in front of}   & 69.9  & 17.9  & 7.5   & 21.4  & 64.3 \\
+9.4\% & \textit{left of}        & 89.8  & 16.1  & 7.3   & 25.0  & 83.3 \\
+5.8\% & \textit{right of}       & 58.0  & 15.4  & 7.3   & 32.5  & 55.2 \\\hline\hline
+    \multicolumn{2}{|r|}{Total} & 79.0  & 16.1  & 7.2   & 32.8  & 63.5 \\\hline
+  \end{tabular}
+  \caption{Performance on test set.}
+  \label{fig:results}
+\end{figure*}
+\end{comment}
 
 Figure~\ref{fig:results} shows the correctness rate of our algorithm and of three baselines for comparison. The percentage next to each preposition is the fraction of sentences in the test set that contain this preposition, and so will not add up to 100\%. The baselines are:
 \begin{enumerate}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
@@ -438,9 +478,9 @@ The percentage on the left of each preposition is the fraction of the test set t
 
 To evaluate incremental performance, we report performance on the test set as a fraction of each sentence provided to the algorithm. Figure~\ref{fig:results_inc} reports the evaluation of the test set when our algorithm is run on it word-by-word. Note that, due to the variation in lengths of sentences, the charts are drawn by interpolating fraction of each sentence into bins from 0 to 1.
 
-\begin{figure}[H]
+\begin{figure}[h]
   \centering
-  \includegraphics[scale=.60]{eval/cdf_by_fraction}
+  \includegraphics[width=\columnwidth]{eval/cdf_by_fraction}
   \caption{Performance on test set.}
   \label{fig:results_inc}
 \end{figure}
@@ -456,7 +496,7 @@ We observe that the rate of correct identification of our model is particularly 
 
 \begin{figure}[h!tb]
   \centering
-    \includegraphics[width=0.75\textwidth]{near_train_test_comp}
+    \includegraphics[width=\columnwidth]{near_train_test_comp}
   \caption{Relative position of ``[Figure] near [Landmark]'' in the training and the test sets, with the probability density of the model as background.}
   \label{fig:near_comp}
 \end{figure}
@@ -473,10 +513,10 @@ Figure~\ref{fig:interrater} shows the outcome of this when we restrict the test 
   \centering
   \begin{tabular}{|r|m{1.2cm}m{1.2cm}m{1.2cm}m{1.2cm}|}\hline
   & \multicolumn{4}{c|}{Rate of correct identification, Test (\%)} \\
-  No. of Correct Raters, $r$ & $\geq 0$ & $\geq 1$ & $\geq 2$ & $=3$ \\\hline
+  $r$ & $\geq 0$ & $\geq 1$ & $\geq 2$ & $=3$ \\\hline
   Top-1 & 32.8 & 33.7 & 34.2 & 36.9 \\
   Top-3 & 63.5 & 65.3 & 65.9 & 69.6 \\\hline
-  Fraction of total (\%) & 100 & 93.1 & 84.5 & 59.3 \\\hline
+  (\%) & 100 & 93.1 & 84.5 & 59.3 \\\hline
   \end{tabular}
   \caption{Correctness rate for different number of correct raters, with size of data.}
   \label{fig:interrater}
@@ -508,7 +548,6 @@ In this paper we have presented an incremental referring expression parser that 
 
 The primary future task is to integrate this with the social feedback framework on Baxter in the H2R lab and conduct user studies to investigate if this provides a measurable improvement to user interaction. Other future work includes developing a model of the preposition `near' that better matches human sensibilities. This may even extend to learning the spatial shift between humans and our system and adjusting spatial models to account for that.
 
-\clearpage
 \printbibliography
 
 \end{document}
