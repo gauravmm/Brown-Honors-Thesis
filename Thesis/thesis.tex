@@ -196,7 +196,7 @@ We then assume that we can factor the sequence of words into separate independen
    = & \Pr(\Gamma = \gamma | \Lambda_1, \Lambda_2, \ldots, \Lambda_k) 
 \\ = & \frac{\Pr(\Lambda_1, \Lambda_2, \ldots, \Lambda_k | \Gamma = \gamma) \cdot \Pr(\Gamma = \gamma)}{\Pr(\Lambda_1, \Lambda_2, \ldots, \Lambda_k)}
 \\ \propto & \Pr(\Lambda_1, \Lambda_2, \ldots, \Lambda_k | \Gamma = \gamma)\label{eqn:assumeuniformprior}
-\\ = & \prod_{g=1}^k \Pr(\Lambda_g | \Gamma = \gamma) \label{eqn:combinedistribs}
+\\ = & \prod_{i=1}^k \Pr(\Lambda_i | \Gamma = \gamma) \label{eqn:combinedistribs}
 \end{align}
 
 (In Equation~\ref{eqn:assumeuniformprior}, we assume a uniform prior on both language and target object, and so eliminate the other terms.)
@@ -317,10 +317,10 @@ $\Rightarrow$} &
 \textbf{\textsc{Case 2}} Combining multiple distributions.
 
 In Figure~\ref{fig:bottom_up_eval}, we simplify groundings $Pr(\Lambda_1 | \Gamma = \gamma)$ and derived distribution $Pr(\Lambda_2 | \Gamma = \gamma)$ to get $\Gamma$, our estimated distribution. As established in the initial factorization, we simply take the inner product of all distributions to find the overall distribution. Equation~\ref{eqn:combinedistribs} is reproduced here:
-\begin{align}
+\begin{align*}
   & \Pr(\Gamma = \gamma | \lambda_1, \lambda_2, \ldots, \lambda_t)
-  \\ = & \prod_{g=1}^k \Pr(\Lambda_g | \Gamma = \gamma) 
-\end{align}
+  \\ = & \prod_{i=1}^k \Pr(\Lambda_i | \Gamma = \gamma) 
+\end{align*}
 
 The na\"ive implementation also takes time to the order of $\mathcal{O}(|\xi|^{n+1})$, where $|\xi|$ is the number of objects and $n$ is the number of groundings for which the marginal distribution must be taken.
 
