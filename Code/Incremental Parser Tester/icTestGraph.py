@@ -34,6 +34,22 @@ pos = lambda dist, item: sum(1 for k,v in dist.iteritems() if k[1:7] == "orange_
 
 def run():
     plt.close("all");
+    ct = 0;
+    rv = load();
+    for i,(sp,tok,(sc,ob),lprp) in enumerate(zip(split, tokens, img, preps)):
+        if i in rv:
+            dist = rv[i][-1];
+            score = topN(dist, 'orange_' + ob, 1)*1./countSim(dist, dist['orange_' + ob]);
+            
+            if "NEAR" in lprp and score == 0:
+                print i, sc, ob;
+                ct += 1;
+    
+    print ct;
+
+
+def runExamineSpecific():
+    plt.close("all");
     k = 0;
     
     rv = load();
