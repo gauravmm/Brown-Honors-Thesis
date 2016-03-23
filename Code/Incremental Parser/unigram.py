@@ -8,6 +8,22 @@ def prob(w, grnd, n_gnd):
     if grnd[0:7] == "orange_":
         grnd = "orange_";
         mult = 0.125;
+        
+    stdVirtualProbYes = (100 + ALPHA)/(100 + ALPHA * n_gnd);
+    stdVirtualProbNo  = (0   + ALPHA)/(100 + ALPHA * n_gnd);
+    
+    # We patch in support for VIRTUAL_YOU and VIRTUAL_ME here.
+    if w in ["me", "i", "I"]:
+        if grnd == "VIRTUAL_ME":
+            return stdVirtualProbYes;
+        else:
+            return stdVirtualProbNo;
+    elif w in ["robot", "you"]:
+        if grnd == "VIRTUAL_YOU":            
+            return stdVirtualProbYes;
+        else:
+            return stdVirtualProbNo;
+            
 
     if grnd not in p_intersection:
         return 0.0;        

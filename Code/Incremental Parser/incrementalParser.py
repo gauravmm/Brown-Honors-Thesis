@@ -38,25 +38,32 @@ class IncrementalParser(object):
     def next(self, w):
         self.inp.append(w);
         self.tags = self.newTags();
-        
+               
         # Repeat the tree building:        
         nodes = get_nodes(self.tags, self.inp); 
         nodes = [n for n in nodes if node_filter(n)];
         struc = self.nodesToStructure(nodes);
         
+        
         struc['tgt'] = self.getSNPDist(struc['tgt']); 
         struc['qual'] = [self.getPRPDist(typ, snp) for (typ, snp) in struc['qual'] if typ in preps];
+
+        print struc['qual'];
 
         self.dist = self.mergeDist([struc['tgt']] + struc['qual']);
 
         return self.dist;
+        
     
     def mergeDist(self, dists):
-        return self.normDist(dict((o, prod(d[o] for d in dists)) for o in self.sc));
-        
+        return self.normDist(self.filterDist(dict((o, prod(d[o] for d in dists)) for o in self.sc)));
+
+    def filterDist(self, dist):
+        return dict((o, dist[o]) for o in dist if not o[0:8] == "VIRTUAL_");
+    
     def normDist(self, dist):
         s = sum(dist.itervalues());
-        return dict((o, dist[o]/s) for o in self.sc);
+        return dict((o, dist[o]/s) for o in dist);
         
     def getPRPDist(self, k, p):
         if isinstance(p, basestring):
@@ -196,22 +203,25 @@ class IncrementalParser(object):
 
 def run():
     # inp = ['hand', 'me', 'the', 'orange', 'cube', 'that', 'is', 'in', 'front', 'of', 'yellow', 'bowl'];
-    inp = ['it', 'is', 'the', 'orange', 'cube', 'between', 'the', 'tan', 'and', 'blue', 'bowls', 'near', 'you'];
+    #inp = ['it', 'is', 'the', 'orange', 'cube', 'between', 'the', 'tan', 'and', 'blue', 'bowls', 'near', 'you'];
+    inp = ['the', 'orange', 'cube', 'closest', 'to', 'you'];
 
-    scene_name = '1';
+
+    scene_name = '2';
     
     scenes = load_scenes();
     sc = scenes[scene_name];
     
     ip = IncrementalParser(sc);
     
-    print ", ".join(ob for ob in sc)
+    #print ", ".join(ob for ob in sc)
     
 
     for w in inp:
         dist = ip.next(w);
-        print dist;
-        # print ", ".join(".3f" % dist[ob] for ob in sc)
+        #print dist;
+        #print ", ".join(".3f" % dist[ob] for ob in sc);
+        print w + "\t" + ", ".join(str(ob) + ": " + str(dist["orange_" + str(ob)]) for ob in range(1, 8) if "orange_" + str(ob) in sc);
     
     
 

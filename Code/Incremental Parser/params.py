@@ -106,7 +106,7 @@ VIRTUAL_TABLE = "VIRTUAL_TABLE";
 def load_scenes_ext():
     objs = load_scenes();
     for o in objs:
-        objs[o].update([(VIRTUAL_YOU,(0, 0)), (VIRTUAL_ME,(0, 0)), (VIRTUAL_TABLE,(0, 0))]);
+        objs[o][VIRTUAL_TABLE] = (0, 0);
         
     return objs;
 
@@ -118,6 +118,7 @@ def load_scenes():
         f = load_data("/Scene_%s_Ground.csv" % i);
         for row in f:
             d[row[0]] = (float(row[1]), float(row[2]));
+        
         scene[i] = d;
     
     return scene;
