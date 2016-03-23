@@ -28,21 +28,24 @@ top2 = lambda dist, item:  dist[item] >= sorted(dist.values())[-2];
 top3 = lambda dist, item:  dist[item] >= sorted(dist.values())[-3];
 
 countSim = lambda dist, val: sum(1 for v in dist.values() if v == val);
+countPos = lambda dist, val: 1 + sum(1 for v in dist.values() if v > val);
 
     
 pos = lambda dist, item: sum(1 for k,v in dist.iteritems() if k[1:7] == "orange_" and v >= dist[item]);
 
 def run():
-    plt.close("all");
     ct = 0;
     rv = load();
     for i,(sp,tok,(sc,ob),lprp) in enumerate(zip(split, tokens, img, preps)):
         if i in rv:
             dist = rv[i][-1];
             score = topN(dist, 'orange_' + ob, 1)*1./countSim(dist, dist['orange_' + ob]);
-            
-            if "NEAR" in lprp and score == 0:
-                print i, sc, ob;
+
+            if "NEAR" in lprp:
+                print score, i, sc, ob, countPos(dist, dist['orange_' + ob]);
+                if score == 0:
+                    print " ".join(tok);
+                    print [k for k in dist if dist[k] > dist['orange_' + ob]];
                 ct += 1;
     
     print ct;

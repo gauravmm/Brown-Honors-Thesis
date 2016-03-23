@@ -194,12 +194,13 @@ Given a sequence of words $\Lambda_\circ = \lambda_1, \lambda_2, \ldots, \lambda
 We then assume that we can factor the sequence of words into separate independent constituents ($\Lambda_1, \Lambda_2, \ldots, \Lambda_k$), according to the compositional structure of language \citep{heim1998semantics}, each of which corresponds to either a grounding (a description of the object, such as ``the orange cube'') or a prepositional phrase (e.g. ``between the \ldots''). We assume these to be independent and factor the expression:
 \begin{align}
    = & \Pr(\Gamma = \gamma | \Lambda_1, \Lambda_2, \ldots, \Lambda_k) 
-\\ = & \frac{\Pr(\Lambda_1, \Lambda_2, \ldots, \Lambda_k | \Gamma = \gamma) \cdot \Pr(\Gamma = \gamma)}{\Pr(\Lambda_1, \Lambda_2, \ldots, \Lambda_k)}
-\\ \propto & \Pr(\Lambda_1, \Lambda_2, \ldots, \Lambda_k | \Gamma = \gamma)\label{eqn:assumeuniformprior}
-\\ = & \prod_{i=1}^k \Pr(\Lambda_i | \Gamma = \gamma) \label{eqn:combinedistribs}
+\intertext{Applying Bayes' rule:}
+ = & \frac{\Pr(\Lambda_1, \Lambda_2, \ldots, \Lambda_k | \Gamma = \gamma) \cdot \Pr(\Gamma = \gamma)}{\Pr(\Lambda_1, \Lambda_2, \ldots, \Lambda_k)}
+\intertext{We assume a uniform prior on both language and target object, and so eliminate the other terms.}
+ \propto & \Pr(\Lambda_1, \Lambda_2, \ldots, \Lambda_k | \Gamma = \gamma)\label{eqn:assumeuniformprior}
+\intertext{We have assumed that the constitutents are independent, so we separate the terms.}
+ = & \prod_{i=1}^k \Pr(\Lambda_i | \Gamma = \gamma) \label{eqn:combinedistribs}
 \end{align}
-
-(In Equation~\ref{eqn:assumeuniformprior}, we assume a uniform prior on both language and target object, and so eliminate the other terms.)
 
 This factorization is done using a chunking algorithm, \citep{McCallumMALLET}. We assume that the chunkings given here are certain, and so eliminate the probability term associated with that. For speed, we approximate with a chunking which has been shown to give good results in practice.
 
