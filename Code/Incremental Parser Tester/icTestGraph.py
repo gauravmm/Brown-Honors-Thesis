@@ -34,6 +34,19 @@ countPos = lambda dist, val: 1 + sum(1 for v in dist.values() if v > val);
 pos = lambda dist, item: sum(1 for k,v in dist.iteritems() if k[1:7] == "orange_" and v >= dist[item]);
 
 def run():
+    rv = load();
+
+    #computeBatchTable(rv);
+    #plotNCorrectnessByFraction(rv, 5);
+    #plotNCorrectnessByWord(rv, 5);
+    computeCorrectnessInterrater(rv);
+    
+    # scatterEntropy(rv);
+    #plotNCorrectnessByWord(rv, 5);
+            
+    # for i,(sp,tok,(sc,ob)) in enumerate(zip(split, tokens, img)):
+
+def runCheckNear():
     ct = 0;
     rv = load();
     for i,(sp,tok,(sc,ob),lprp) in enumerate(zip(split, tokens, img, preps)):
@@ -76,16 +89,6 @@ def runExamineSpecific():
                     #print [1-floor(val * 100)/100 for val in v];
 
         #print rv[i];
-    
-    #computeBatchTable(rv);
-    #plotNCorrectnessByFraction(rv, 5);
-    #plotNCorrectnessByWord(rv, 5);
-    #computeCorrectnessInterrater(rv);
-    
-    # scatterEntropy(rv);
-    #plotNCorrectnessByWord(rv, 5);
-            
-    # for i,(sp,tok,(sc,ob)) in enumerate(zip(split, tokens, img)):
             
 def computeCorrectnessInterrater(rv):
 
@@ -97,7 +100,7 @@ def computeCorrectnessInterrater(rv):
     
     scr = [0, 0, 0, 0];
     total = [0, 0, 0, 0];
-    top_n_v = 3;
+    top_n_v = 1;
     
     for i,(sp,tok,(sc,ob),lprp) in enumerate(zip(split, tokens, img, preps)):
         if i in rv:
@@ -258,13 +261,13 @@ def plotNCorrectnessByFraction(rv, numtot):
     
     #print correct;
     
-    plt.figure();
+    plt.figure(figsize=(6, 3), dpi=300);
     plt.hold("on");
 
     legend_key = [];
     legend_val = [];    
     
-    for k in range(numtot):
+    for k in range(0, numtot, 2):
         p1, = plt.plot(intpX, correct[k, :]/total)
         legend_key.append(p1);
         legend_val.append("Top-" + str(k + 1));

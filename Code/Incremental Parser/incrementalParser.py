@@ -48,8 +48,6 @@ class IncrementalParser(object):
         struc['tgt'] = self.getSNPDist(struc['tgt']); 
         struc['qual'] = [self.getPRPDist(typ, snp) for (typ, snp) in struc['qual'] if typ in preps];
 
-        print struc['qual'];
-
         self.dist = self.mergeDist([struc['tgt']] + struc['qual']);
 
         return self.dist;
@@ -66,28 +64,28 @@ class IncrementalParser(object):
         return dict((o, dist[o]/s) for o in dist);
         
     def getPRPDist(self, k, p):
+        
         if isinstance(p, basestring):
+            p = [[p]];
+        
+        if isinstance(p[0], basestring):
             p = [p];
         
-        
-        prp_sig  = "";
-        if k == "BETWEEN":
-            prp_sig = k + "_" + "__".join("_".join(o) for o in p);6
-        else:
-            prp_sig = k + "_" + "_".join(p);
-            
+        prp_sig = k + "_" + "__".join("_".join(o) for o in p);            
             
         if prp_sig not in self.prpcache:
-            snps = [self.uniformPrior] + [self.getSNPDist(s) for s in p];                    
+            snps = [self.uniformPrior] + [self.getSNPDist(s) for s in p];
             
             bf_ground, bf, transform, model_filter, bf_generator = self.mod.get_features(k);        
             dist_out = dict((o,0) for o in self.sc);
             for gnd in bf_generator(self.sc.keys()):
                 # Zip the distributions with the groundings and calculate the value:
                 prob_gnd = prod(dst[g] for dst, g in zip(snps,gnd));
+                
                 if prob_gnd == 0:
-                    continue;                
+                    continue;
                 dist_out[gnd[0]] += prob_gnd * self.mod.test(k, [self.sc[o] for o in gnd]);
+                
                 
             self.prpcache[prp_sig] = dist_out;        
             
@@ -150,6 +148,9 @@ class IncrementalParser(object):
                     if nodes and nodes[0][0] == "SNP":
                         p_between[1].append(nodes[0][1]);
                         nodes = nodes[1:];
+                    # Pad it out.
+                    while len(p_between[1]) < 2:
+                        p_between[1].append([UNK_OBJ]);
                     rv["qual"].append(p_between);
                 else:
                     if nodes and nodes[0][0] == "SNP":
@@ -195,6 +196,7 @@ class IncrementalParser(object):
                     out = [o.strip() for o in out[0:-1]];
             except:
                 print "Call to Mallet failed";
+                raise;
                 
             return out;
         finally:
@@ -207,20 +209,17 @@ def run():
     inp = ['the', 'orange', 'cube', 'closest', 'to', 'you'];
 
 
-    scene_name = '2';
+    scene_name = '3';
     
     scenes = load_scenes();
     sc = scenes[scene_name];
     
     ip = IncrementalParser(sc);
     
-    #print ", ".join(ob for ob in sc)
     
 
     for w in inp:
         dist = ip.next(w);
-        #print dist;
-        #print ", ".join(".3f" % dist[ob] for ob in sc);
         print w + "\t" + ", ".join(str(ob) + ": " + str(dist["orange_" + str(ob)]) for ob in range(1, 8) if "orange_" + str(ob) in sc);
     
     

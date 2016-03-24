@@ -184,6 +184,7 @@ We evaluate the tree from the bottom upwards, using spatial features and trained
 \caption{Example incremental evaluation -- Example \#368 from the test set, proceeds in reading order.}
 \label{fig:worked_example}
 \end{figure*}
+
 \clearpage
 }
 
@@ -191,6 +192,8 @@ Given a sequence of words $\Lambda_\circ = \lambda_1, \lambda_2, \ldots, \lambda
 \begin{align}
 	& \Pr(\Gamma = \gamma | \lambda_1, \lambda_2, \ldots, \lambda_t)
 \end{align}
+
+
 We then assume that we can factor the sequence of words into separate independent constituents ($\Lambda_1, \Lambda_2, \ldots, \Lambda_k$), according to the compositional structure of language \citep{heim1998semantics}, each of which corresponds to either a grounding (a description of the object, such as ``the orange cube'') or a prepositional phrase (e.g. ``between the \ldots''). We assume these to be independent and factor the expression:
 \begin{align}
    = & \Pr(\Gamma = \gamma | \Lambda_1, \Lambda_2, \ldots, \Lambda_k) 
@@ -444,13 +447,13 @@ For each referring expression in the test set, we get three separate human rater
      & & \multicolumn{3}{c||}{Baselines} & \multicolumn{2}{c|}{Results} \\
      \multicolumn{2}{|c|}{Preposition}
 			                      &   Human & Unigram & Random &  Top-1 & Top-3 \\\hline
-26.8\% & \textit{between}       & 88.2  & 14.3  & 7.1   & 71.6  & 94.1 \\
-21.3\% & \textit{near}          & 82.5  & 17.2  & 7.3   & 7.9   & 51.1 \\
-14.2\% & \textit{behind}        & 76.9  & 15.7  & 6.9   & 25.9  & 75.9 \\
-11.0\% & \textit{in front of}   & 69.9  & 17.9  & 7.5   & 21.4  & 64.3 \\
-9.4\% & \textit{left of}        & 89.8  & 16.1  & 7.3   & 25.0  & 83.3 \\
-5.8\% & \textit{right of}       & 58.0  & 15.4  & 7.3   & 32.5  & 55.2 \\\hline\hline
-    \multicolumn{2}{|r|}{Total} & 79.0  & 16.1  & 7.2   & 32.8  & 63.5 \\\hline
+26.8\% & \textit{between}       & 88.2  & 14.3  & 7.1   & 77.5  & 97.1 \\
+21.3\% & \textit{near}          & 82.5  & 17.2  & 7.3   & 64.7  & 88.1 \\
+14.2\% & \textit{behind}        & 76.9  & 15.7  & 6.9   & 81.5  & 94.4 \\
+11.0\% & \textit{in front of}   & 69.9  & 17.9  & 7.5   & 57.1  & 88.1 \\
+9.4\% & \textit{left of}        & 89.8  & 16.1  & 7.3   & 69.4  & 100.0 \\
+5.8\% & \textit{right of}       & 58.0  & 15.4  & 7.3   & 55.2  & 91.6 \\\hline\hline
+    \multicolumn{2}{|r|}{Total} & 79.0  & 16.1  & 7.2   & 60.3  & 79.0 \\\hline
   \end{tabular}
   \caption{Performance on test set.}
   \label{fig:results}
@@ -484,25 +487,9 @@ To evaluate incremental performance, we report performance on the test set as a 
 
 Five separate lines are drawn to show the distribution of the rank of the correct option. Each Top-$k$ line includes an example if the target object has at least as much probability as the $k^\text{th}$-highest probability in the distribution. Should there be a tie, the rate is divided by the number of items of equal probability.
 
-\subsection{Failure Analysis}
-After testing was complete, we examined individual cases in the test set to characterize failures. 
+\subsection{Imprecise and Incorrect Data}
 
-\subsubsection{Spatial Model of `near'}
-
-We observe that the rate of correct identification of our model is particularly low in comparison to that of humans when dealing with the preposition `near'. For each phrase ``[Figure] near [Landmark]'' in the training and test sets, we plot the location of the ``Landmark'' object in comparison to the target ``Figure'' object in in the training and test sets in Figure~\ref{fig:near_comp}. It is clear that this simple model does not fully capture the nuances of the use of `near'.
-
-\begin{figure}[h!tb]
-  \centering
-    \includegraphics[width=1.1\columnwidth]{near_train_test_comp}
-  \caption{Relative position of ``[Figure] near [Landmark]'' in the training and the test sets, with the probability density of the model as background.}
-  \label{fig:near_comp}
-\end{figure}
-
-Perhaps this model could be extended to include the relative positions of other objects, or to reflect the local geometry of the scene. We suspect that a major source of error is the difference in perspective of the robot and the human. The human perspective is in front of the table and so is subject to foreshortening, while the robot's perspective does not.
-
-\subsubsection{Dealing with Imprecise and Incorrect Data}
-
-Another major source of error is the presence of imprecise or incorrect data in our training and test set. An imprecise referring expression is one that does not uniquely identify a target object, and an incorrect referring expression is one that does not identify the correct object. Here we estimate how much of our error is due to imprecise and incorrect referring expressions by evaluating our algorithm on referring expressions with $r$ humans correctly identifying the target object.
+A major source of error is the presence of imprecise or incorrect data in our training and test set. An imprecise referring expression is one that does not uniquely identify a target object, and an incorrect referring expression is one that does not identify the correct object. Here we estimate how much of our error is due to imprecise and incorrect referring expressions by evaluating our algorithm on referring expressions with $r$ humans correctly identifying the target object.
 
 Figure~\ref{fig:interrater} shows the outcome of this when we restrict the test set to referring expressions that have been correctly identified by an increasing number of humans. The first column is the control (using all data), the second includes only referring expressions correctly solved by at least one human, then at least two humans, and finally only those by all three humans.
 
@@ -511,15 +498,15 @@ Figure~\ref{fig:interrater} shows the outcome of this when we restrict the test 
   \begin{tabular}{|r|m{1.2cm}m{1.2cm}m{1.2cm}m{1.2cm}|}\hline
   & \multicolumn{4}{c|}{Rate of correct identification, Test (\%)} \\
   $r$ & $\geq 0$ & $\geq 1$ & $\geq 2$ & $=3$ \\\hline
-  Top-1 & 32.8 & 33.7 & 34.2 & 36.9 \\
-  Top-3 & 63.5 & 65.3 & 65.9 & 69.6 \\\hline
+  Top-1 & 60.3 & 63.2 & 65.2 & 69.6 \\
+  Top-3 & 79.0 & 81.0 & 82.7 & 85.1 \\\hline
   (\%) & 100 & 93.1 & 84.5 & 59.3 \\\hline
   \end{tabular}
   \caption{Correctness rate for different number of correct raters, with size of data.}
   \label{fig:interrater}
 \end{figure}
 
-From this we see that genuine confusion accounts for between 4-6 percentage points of the total error, which is substantial.
+From this we see that genuine confusion accounts for between 5-10 percentage points of the total error, which is substantial.
 
 \section{Related Work}
 
