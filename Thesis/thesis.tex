@@ -210,14 +210,12 @@ This factorization is done using a chunking algorithm, \citep{McCallumMALLET}. W
 We assume that each of these expressions can either be describing the target object or describing the location of the target object using a preposition. In the former case, we use a unigram model to estimate this probability. Details of this process are in Section \ref{sec:bottomupeval}; Equation~\ref{eqn:unigram_model} is reproduced here:
 \begin{align*}
    & \Pr(\Lambda_j | \Gamma = \gamma) 
-\\ & = \prod_{\lambda \in \Lambda_j} \left( (1 - \alpha) * \frac{Q(\gamma, \lambda)}{\sum_{\omega} Q(\omega, \lambda)} + \frac{\alpha}{k} \right) \end{align*}
+\\ & = \prod_{\lambda \in \Lambda_j} \left( (1 - \alpha) * \frac{Q(\gamma, \lambda)}{\sum_{\omega} Q(\omega, \lambda)} + \frac{\alpha}{\xi} \right) \end{align*}
 
-In the latter case, we convert the expression to a combination of a spatial model of a preposition and at least one other distribution over objects. Details of this process are in Section \ref{sec:bottomupeval}; Equation~\ref{eqn:unigram_model} is reproduced here:
+In the latter case, we convert the expression to a combination of a spatial model of a preposition and at least one other distribution over objects. Details of this process are in Section \ref{sec:bottomupeval}; Equation~\ref{eqn:prepositions} is reproduced here:
 \begin{align*}
    & \Pr(\Lambda_j | \Gamma = \gamma)
-\\[7pt] \begin{split}
-   & \propto \text{S}\left( \frac{f(\gamma, \gamma_1, \ldots) \cdot \theta_p}{z} \right) \cdot \prod_i \Pr(\Lambda_{j,i}|\Gamma_{j,i})
-\end{split}
+\\ & \propto \sum_{\gamma_1 \in \xi} \cdots\sum_{\gamma_n \in \xi} \left(\prod_{i=1}^n \Pr(\Lambda_{j,i}|\Gamma_{j,i}) \right) \cdot \text{S}\left( \frac{f(\gamma, \gamma_1, \ldots) \cdot \theta_p}{z} \right)
 \end{align*}
 
 
@@ -233,8 +231,8 @@ We attempt to locate the \textit{orange cube} using the following referring expr
 \begin{figure*}[b]
   \centering
   \setlength{\qtreepadding}{3pt}
-\begin{tabular}{ccccccc}
-\Tree [.{$\Pr(\Gamma|\Lambda)$} \emph{The orange cube} [.{\emph{between}} \emph{the red} \emph{the yellow} ]] &
+\begin{tabular}{ccccccc}\hline\hline
+\Tree [.{$\Pr(\Gamma|\Lambda)$} \emph{The orange cube} [.{\emph{between}} \emph{the red} \emph{the yellow} ]] \vspace{0.12in} &
 \pbox{0.2in}{\vspace{0.5in}
 $\Rightarrow$} &
 \Tree [.{$\Pr(\Gamma|\Lambda)$} {$\Pr(\Lambda_1 | \Gamma)$} [.{Preposition $p \in P$} {$\Pr(\Lambda_{2,1} | \Gamma)$} {$\Pr(\Lambda_{2,2} | \Gamma)$} ]] &
@@ -245,7 +243,7 @@ $\Rightarrow$} &
 \pbox{0.2in}{\vspace{0.5in}
 $\Rightarrow$} & 
 \Tree [.{$\Pr(\Gamma|\Lambda)$} ]
-\\ 
+\\ \hline
 \multicolumn{2}{r}{\textbf{(Case 0)}} & \multicolumn{2}{r}{\textbf{(Case 1)}} & \multicolumn{2}{r}{\textbf{(Case 2)}}
 \end{tabular}
 \caption{The three cases of bottom-up evaluation.}
@@ -269,41 +267,44 @@ Once we have a semantic tree, we can simplify the tree in a bottom-up manner to 
 Each grounding in the tree is modeled by a distribution that is obtained from the language model. 
 \begin{align}
    & \Pr(\Lambda_j | \Gamma = \gamma) 
-\\ & = \prod_{\lambda \in \Lambda_j} \left( (1 - \alpha) * \frac{Q(\gamma, \lambda)}{\sum_{\omega} Q(\omega, \lambda)} + \frac{\alpha}{k} \right) \label{eqn:unigram_model}
+\\ & = \prod_{\lambda \in \Lambda_j} \left( (1 - \alpha) * \frac{Q(\gamma, \lambda)}{\sum_{\omega} Q(\omega, \lambda)} + \frac{\alpha}{|\xi|} \right) \label{eqn:unigram_model}
 \end{align}
 
-The language model used is a unigram language model, where each word $\lambda$ refers to object $\gamma$ with some joint score $Q(\gamma, \lambda)$ that we can estimate statistically. The distribution of simple noun phrase $\Lambda_j$ referring to object $\gamma$ is given by Equation~\ref{eqn:unigram_model}. For smoothing, we assume that there is some small probability $\alpha$ that the object is uniformly at random chosen without regard to the word. We arbitrarily set $\alpha \approx 5\%$.
+The language model used is a unigram language model, where each word $\lambda$ refers to object $\gamma$ with some joint score $Q(\gamma, \lambda)$ that we can estimate statistically. The distribution of simple noun phrase $\Lambda_j$ referring to object $\gamma$ is given by Equation~\ref{eqn:unigram_model}. For smoothing, we assume that there is some small probability $\alpha$ that the object is uniformly at random chosen without regard to the word. We arbitrarily set $\alpha \approx 5\%$. $\xi$ is the set of all objects, and $|\xi|$ is the number of objects.
 
 A simple implementation will be able to perform a lookup in $\mathcal{O}(|\Lambda_j|)$ time, where $|\Lambda_j|$ is the number of words in $\Lambda_j$.
 
 \textbf{\textsc{Case 1}} Simplifying a preposition and associated noun-phrases.
 
-We have preposition $p \in P = $ \{`near', `left', `right', `front', `behind', `between'\}. Each grounding that the $i^\text{th}$ preposition relies on is modeled by the distributions $\Pr(\Lambda_{j,i}|\Gamma_{j,i})$, obtained from the language model (See Case 0). We find $\Pr(\Lambda_j | \Gamma = \gamma)$ with:
+We have preposition $p \in P = $ \{`near', `left', `right', `front', `behind', `between'\}. The $i^\text{th}$ grounding that the preposition relies on is modeled by the distributions $\Pr(\Lambda_{j,i}|\Gamma_{j,i})$, obtained from the language model (See Case 0). We find $\Pr(\Lambda_j | \Gamma = \gamma)$ with:
+
+\break
+
 \begin{align}
    & \Pr(\Lambda_j | \Gamma = \gamma)
-\intertext{Use the structure of prepositional phrases to factor $\Lambda_j$ into a preposition and groundings:}
+\intertext{Use the structure of prepositional phrases to factor $\Lambda_j$ into a preposition and groundings. $\Lambda_{j,P}$ refers to the subset of $\Lambda_{j}$ which describes the preposition (e.g. the word ``between'' or ``near''), and corresponds to $P$, the distribution over possible prepositions. Each $\Lambda_{j,i}$ refers to the subset of $\Lambda_{j}$ which describes the $i^\text{th}$ object that the preposition references (i.e. the object to which the target is ``near'') and corresponds to the distribution over all objects $\Gamma_{j,i}$. Let $n$ be the number of such groundings.}
 \begin{split}
-& = \Pr(\Lambda_{j,P},\Lambda_{j,1},\Lambda_{j,2}, \ldots | P = p, \Gamma_{j,1}, \Gamma_{j,2}, \ldots)
-\\ & \phantom{=}~\cdot \Pr(P = p, \Gamma_{j,1}, \Gamma_{j,2}, \ldots | \Gamma = \gamma)
+& = \sum_{p \in P} \sum_{\gamma_1 \in \xi} \cdots\sum_{\gamma_n \in \xi}
+\\ & \phantom{=}~ \Pr(\Lambda_{j,P},\Lambda_{j,1}, \ldots, \Lambda_{j,n}| P = p, \Gamma_{j,1} = \gamma_1, \ldots, \Gamma_{j,n} = \gamma_n)
+\\ & \phantom{=}~\cdot \Pr(P = p, \Gamma_{j,1} = \gamma_1, \ldots, \Gamma_{j,n} = \gamma_n | \Gamma = \gamma)
 \end{split}
-\intertext{Assume that each grounding is independent and factor the expression:}
+\intertext{We assume that each grounding is independent, which allows us to separate each grounding in the first inner term:}
 \begin{split}
-& = \Pr(\Lambda_{j,P} | P = p) \cdot \left(\prod_i \Pr(\Lambda_{j,i}|\Gamma_{j,i}) \right)
-\\ & \phantom{=}~\cdot \Pr(P = p, \Gamma_{j,1}, \Gamma_{j,2}, \ldots | \Gamma = \gamma)
+& = \sum_{p \in P} \sum_{\gamma_1 \in \xi} \cdots\sum_{\gamma_n \in \xi}
+\\ & \phantom{=}~ \Pr(\Lambda_{j,P} | P = p) \cdot \left(\prod_{i=1}^n \Pr(\Lambda_{j,i}|\Gamma_{j,i} = \gamma_i) \right)
+\\ & \phantom{=}~\cdot \Pr(P = p, \Gamma_{j,1} = \gamma_1, \ldots, \Gamma_{j,n} = \gamma_n | \Gamma = \gamma)
 \end{split}
-\intertext{We assume that prepositions are certain, and so eliminate the first term. We parametrize the last term with feature-vector function $f$, weights $\theta_p$, logistic function $S$, and some normalization factor $z$:}
+\intertext{We assume that prepositions are certain, and so eliminate the associated term and summation.}
 \begin{split}
-   & \propto \text{S}\left( \frac{f(\gamma, \gamma_1, \ldots) \cdot \theta_p}{z} \right) \cdot \prod_i \Pr(\Lambda_{j,i}|\Gamma_{j,i}) \label{eqn:prepositions}
+& = \sum_{\gamma_1 \in \xi} \cdots\sum_{\gamma_n \in \xi}
+\\ & \phantom{=}~ \left(\prod_{i=1}^n \Pr(\Lambda_{j,i}|\Gamma_{j,i} = \gamma_i) \right) 
+\\ & \phantom{=}~ \cdot \Pr(P = p, \Gamma_{j,1} = \gamma_1, \ldots, \Gamma_{j,n} = \gamma_n | \Gamma = \gamma)\label{eqn:prep_model_pending}
 \end{split}
 \end{align}
 
-We can estimate $\theta_p$ for each $p$ using logistic regression, and select feature-vector function $f$ separately.
-
-We observe that the na\"ive implementation takes time to the order of $\mathcal{O}(|\xi|^{n+1})$, where $|\xi|$ is the number of objects and $n$ is the number of groundings that each preposition has.
-
 \begin{figure*}[!b]
   \centering
-\begin{tabular}{ccccc}
+\begin{tabular}{ccccc}\hline\hline
 \Tree [.$\circ$ [.\fbox{cache miss} [.\fbox{cache miss} \emph{The orange cube} ] ]] &
 \pbox{0.2in}{\vspace{0.5in}
 $\Rightarrow$} &
@@ -317,6 +318,32 @@ $\Rightarrow$} &
 \caption{Cache behavior as words are added.}
   \label{fig:incremental_caching}
 \end{figure*}
+
+We now consider this remaining inner term, modeling it with the prepositional spatial model:
+\begin{align}
+& \Pr(P = p, \Gamma_{j,1} = \gamma_1, \ldots, \Gamma_{j,n} = \gamma_n | \Gamma = \gamma)
+\intertext{Applying Bayes' theorem:}
+\begin{split}
+& = \Pr(\Gamma = \gamma | P = p, \Gamma_{j,1} = \gamma_1, \ldots, \Gamma_{j,n} = \gamma_n) 
+\\ & \phantom{=}~\cdot \frac{\Pr(P = p, \Gamma_{j,1} = \gamma_1, \ldots, \Gamma_{j,n} = \gamma_n)}{\Pr(\Gamma = \gamma)}
+\end{split}
+\intertext{Since we have already assumed that prepositions are certain and that the prior probability of all groundings is uniform over all objects, we can simply this to:}
+& \propto \Pr(\Gamma = \gamma | P = p, \Gamma_{j,1} = \gamma_1, \ldots, \Gamma_{j,n} = \gamma_n) 
+\intertext{We parametrize this with feature-vector function $f$, weights $\theta_p$, logistic function $S$, and some normalization factor $z$:}
+   & = \text{S}\left( \frac{f(\gamma, \gamma_1, \ldots) \cdot \theta_p}{z} \right) \label{eqn:prep_model_inner}
+\end{align}
+
+We can estimate $\theta_p$ for each $p$ using logistic regression, and select feature-vector function $f$ separately.
+
+We substitute the spatial model in Equation~\ref{eqn:prep_model_inner} into Equation~\ref{eqn:prep_model_pending}, and obtain:
+\begin{align}
+   & \Pr(\Lambda_j | \Gamma = \gamma) \nonumber
+\\ 
+& \propto \sum_{\gamma_1 \in \xi} \cdots\sum_{\gamma_n \in \xi} \left(\prod_{i=1}^n \Pr(\Lambda_{j,i}|\Gamma_{j,i}) \right) \cdot \text{S}\left( \frac{f(\gamma, \gamma_1, \ldots) \cdot \theta_p}{z} \right) \label{eqn:prepositions}
+\end{align}
+
+We observe that the na\"ive implementation takes time to the order of $\mathcal{O}(|\xi|^{n+1})$, where $|\xi|$ is the number of objects and $n$ is the number of groundings that each preposition has.
+
 
 \textbf{\textsc{Case 2}} Combining multiple distributions.
 
@@ -345,9 +372,9 @@ More formally, given the runtimes and caching behavior discussed earlier, the wo
 
 When $k = 3$ and $n \leq 2$, as in real-world examples, this instead evaluates to the very manageable $\mathcal{O}(|\Lambda| * |\xi|^{4})$, where $|\Lambda|$ is the number of words in the simple noun phrase, and $|\xi|$ is the number of objects in the scene.
 
+
+
 \subsubsection{Chunking with Conditional Random Fields}
-
-
 \begin{figure}[h!]
   \centering   
   \label{fig:crf_retagging_hist}
@@ -379,13 +406,12 @@ When $k = 3$ and $n \leq 2$, as in real-world examples, this instead evaluates t
 
 \end{axis}
 \end{tikzpicture}
+
 \caption{Distribution of number of tags changed each time the chunker is run with one additional word.}
 \end{figure}
 
-The use of conditional random fields complicates the analysis somewhat because adding a word can affect the tags of words already processed, which causes the tree structure to change. In this case, we recompute all nodes in the tree corresponding to words with changed tags, paying the recomputation penalty. Other models such as Hidden Markov Models also have this property.
 
-
-\begin{figure*}[!t]
+\begin{figure*}[!tb]
   \centering
   \setlength\extrarowheight{0pt}
   \fbox{
@@ -403,6 +429,9 @@ The use of conditional random fields complicates the analysis somewhat because a
 	\label{fig:ref_expr_examples_pic}
 \end{figure*}
 
+The use of conditional random fields complicates the analysis somewhat because adding a word can affect the tags of words already processed, which causes the tree structure to change. In this case, we recompute all nodes in the tree corresponding to words with changed tags, paying the recomputation penalty. Other models such as Hidden Markov Models also have this property.
+
+
 We choose to use Conditional Random Fields in part because we can explicitly set the look-ahead limit, and so pick a tradeoff between tagging accuracy and potential worst-case performance. For our algorithm, we arbitrarily set it to 5.
 
 The worst-case runtime scales linearly with the look-ahead limit. To characterize the typical performance penalty caused by our choice of look-ahead parameter, we gathered statistics on the likelihood of this happening in our training set.
@@ -414,7 +443,8 @@ We found that, in our test set, each time a word is added an average of 0.23 ear
 
 We collected a corpus of human-generated data using Human Intelligence Tasks (HITs) on the Amazon Mechanical Turk (AMT) platform and hand-generated scenes. We additionally use AMT to have humans evaluate our test set to obtain a baseline. We trained the language model and spatial-prepositional model on a training set of 11 scenes, each with an average of 14 objects, for a total of 417 input sentences. We trained the chunker on hand-annotated parses of these input sentences.
 
- \subsection{Data Collection}
+
+\subsection{Data Collection}
 A set of HITs were created to elicit referring expressions. A total of 19 scenes were constructed, each with a set of about 12 to 15 objects scattered on a table and at least 6 identical orange cubes. For each orange cube in each scene, 9 different workers were told to ask a robot across the table for the indicated orange cube. Figure~\ref{fig:ref_expr_examples_pic} provides an example of such a labeled scene.
 
 We provide the following instructions:
@@ -430,15 +460,16 @@ You are standing across the table from a robot. Write down what you would say to
 \end{itemize}
 \end{framed}
 
-For each referring expression in the test set, we get three separate human raters to identify the target and provide feedback on the ease of understanding of the referring expression. Figure~\ref{fig:ref_expr_eval_pic} shows an example scene. Refer to Figure~\ref{fig:results} for how often humans correctly identify the target, and Figure~\ref{fig:interrater} for interrater agreement.  
+For each referring expression in the test set, we get three separate human raters to identify the target and provide feedback on the ease of understanding of the referring expression. Refer to Figure~\ref{fig:results} for how often humans correctly identify the target, and Figure~\ref{fig:interrater} for interrater agreement.  
 
+\begin{comment}
 \begin{figure}[!h]
   \centering
     \fbox{\includegraphics[width=0.95\columnwidth]{ref_expr_eval_pic}}
   \caption{Example picture provided to AMT workers to evaluate referring expressions.}
   \label{fig:ref_expr_eval_pic}
 \end{figure}
-
+\end{comment}
 
 \begin{figure*}[!b]
   \centering
@@ -532,13 +563,14 @@ In this paper we have presented an incremental referring expression parser that 
 
 The primary future task is to integrate this with the social feedback framework on Baxter in the H2R lab and conduct user studies to investigate if this provides a measurable improvement to user interaction. Other future work includes developing a model of the preposition `near' that better matches human sensibilities. This may even extend to learning the spatial shift between humans and our system and adjusting spatial models to account for that.
 
-From an algorithmic development perspective, a natural extension of this algorithm is to replace the chunking and semantic tree construction with a chart parser. The chart parser will provide an incremental model of parsing that our spatial model can be directly integrated into. This may even allow the spatial model to inform the parsing, such as by increasing the probability of parses that correspond to narrower distributions. The increased power of the model would be the greater computational overhead: further analysis and experimentation is required to see if this is suitable for use in interactive scenarios.
+From an algorithmic development perspective, a natural extension of this algorithm is to replace the chunking and semantic tree construction with a chart parser. The chart parser will provide an incremental model of parsing that our spatial model can be directly integrated into. This may even allow the spatial model to inform the parsing, such as by increasing the probability of parses that correspond to narrower distributions. The increased power of the model would be offset by the greater computational overhead: further analysis and experimentation is required to see if this is suitable for use in interactive scenarios.
 
 \section{Acknowledgments}
 This thesis project is the culmination of work done from Fall 2014 to present. Some work was previously completed in collaboration with undergraduate student Zachary Loery.
 
 This project was completed in the H2R laboratory in the Brown computer science department, with Prof. Stefanie Tellex as advisor.
 
+\vfill\break
 
 \printbibliography
 
