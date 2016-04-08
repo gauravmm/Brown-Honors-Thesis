@@ -71,18 +71,14 @@
 
 \maketitle
 
+\section{Abstract}
+An important problem in human-robot interaction is that of referring expressions: phrases used to identify a particular object among others. There are existing models to parse these, but all operate on entire sentences; incrementally parsing referring expressions has applications in human-robot interaction and conversational feedback. We present a model for parsing real-word referring expressions, trained and tested on human-provided data. In our test corpus, when presented with the entire sentence, our model identifies the correct object 60.3\% of the time, and ranks the correct object in the top three 79.0\% of the time. In comparison, humans identify the correct object 79.0\% of the time. Incremental performance is also characterized.
+
 
 \section{Introduction}
 
 Referring expressions are phrases used to identify a particular object in a scene by describing it and its relative position to other objects. The integration of \emph{social feedback}, where the robot shows its understanding of a human's utterances by generating small responses as it listens to the human, can prompt clarifications from the human and improve the accuracy of referring expression parsing in interactive contexts. However, this requires robots to be able to parse the human input \emph{incrementally}: updating its understanding as each next word is uttered. 
 
-In this paper we present an incremental referring expression parser that can process prepositional phrases. The incremental nature of the parser is the key contribution: state-of-the-art parsers all operate on complete referring expressions. 
-
-In current work, referring expression parsing is done in batch-mode, with the entire referring expression as input. \citep{tellex2011understanding,UW_RSE_ICML2012,artzi2013weakly,fang2015embodied} During interactive use, batch-mode requires waiting for the complete utterance before processing and providing output, which introduces unaccceptable latency in the robot's response. For example, practical implementations of the $G^3$ system, as created by \citet{tellex2011understanding}, can take up to 30 seconds from the end of the input to the start of a response. Our incremental parsing system updates the distribution with each added word, substantially reducing the delay between input and response.
-
-The incremental parser works by using a conditional-random field chunker to add parts of speech tags to sentences. These tags are used to construct a parse tree, which is then evaluated using an object-word model to resolve references to objects and a preposition model to resolve prepositional phrases. A caching method avoids recomputation cost and gives good worst-case time guarantees.
-
-We evaluate our model on novel real-world data and show that it assigns the correct object the highest probability 32.8\% of the time and in the top-3 objects 63.5\% of the time. In comparison, humans correctly identify the object 79.0\% of the time, a unigram model 16.1\% of the time and random selection is only correct 7.2\% of the time. We also show how incremental performance converges to the above values as more words are available.
 
 \begin{figure}[!tb]
   \centering
@@ -92,71 +88,13 @@ We evaluate our model on novel real-world data and show that it assigns the corr
   \caption{Baxter Robot in H2R lab, Brown University.}
 \end{figure}
 
-Figure~\ref{fig:worked_example} shows an example of the incremental parsing of a referring expression. As more words are available to the parser, the parser identifies the target object by assigning it the highest probability.
+In current work, referring expression parsing is done in batch-mode, with the entire referring expression as input. \citep{tellex2011understanding,UW_RSE_ICML2012,artzi2013weakly,fang2015embodied} During interactive use, batch-mode requires waiting for the complete utterance before processing and providing output, which introduces unaccceptable latency in the robot's response. For example, practical implementations of the $G^3$ system, as created by \citet{tellex2011understanding}, can take up to 30 seconds from the end of the input to the start of a response. Our incremental parsing system updates the distribution with each added word, substantially reducing the delay between input and response.
 
+In this paper we present an incremental referring expression parser that can process prepositional phrases. The incremental nature of the parser is the key contribution: state-of-the-art parsers all operate on complete referring expressions. 
 
-
-\section{Technical Approach}
+The incremental parser works by using a conditional-random field chunker to add parts of speech tags to sentences. These tags are used to construct a parse tree, which is then evaluated using an object-word model to resolve references to objects and a preposition model to resolve prepositional phrases. A caching method avoids recomputation cost and gives good worst-case time guarantees.
 
 \afterpage{%
-\begin{figure*}[tb]
-\begin{tabularx}{\textwidth}{@{} >{\hsize=.5\hsize \centering}X >{\hsize=.45\hsize}X @{}} 
-\multicolumn{2}{c}{``The orange cube between the red thing and the yellow thing.''} \\ 
-\multicolumn{2}{c}{$\Downarrow$} \\ 
-% Chunking	
-\begin{tabular}{c}
-$\underbrace{\text{The orange cube}}_{\texttt{SNP}}$
-$\underbrace{\text{between}}_{\texttt{PRP}}$
-$\underbrace{\text{the red thing}}_{\texttt{SNP}}$
-\\
-$\underbrace{\text{and}}_{\texttt{PRP}}$
-$\underbrace{\text{the yellow thing}}_{\texttt{SNP}}$
-$\underbrace{\text{.}}_{\texttt{.}}$
-\end{tabular}
-& 
-\textbf{Chunking}
-
-First, we use Mallet, \citep{McCallumMALLET} a sequence tagging library, to tag the referring expression with a set of tags. The tags were developed to suit our use case, and are a simplification of the typical English parts-of-speech tags.
-
-\\ $\Downarrow$ \\[0.2cm] 
-
-\scalebox{.9}{\Tree [.TARGET \qroof{The orange cube}.OBJECT [.BETWEEN   \qroof{the red thing}.OBJECT \qroof{the yellow thing}.OBJECT ] ]} &
-
-\textbf{Semantic Tree}
-
-The tagged sequence is then converted to a semantic tree. Because of the simplified tag set in the previous step, this transformation is deterministic.
-
-\\ $\Downarrow$ \\[0.2cm] 
-
-\scalebox{.9}{\Tree [.TARGET \qroof{$\{\sfrac{1}{16}, \sfrac{1}{16}, \ldots, \sfrac{1}{16}\}$}.OBJECT [.BETWEEN   \qroof{$\{0, \sfrac{1}{8}, \ldots, 0\}$}.OBJECT \qroof{$\{0, 0, \ldots, \sfrac{1}{2}\}$}.OBJECT ] ]} 
-
-~
-
-\scriptsize{\{\textit{orange\_1}, \textit{red\_1}, $\ldots $, \textit{yellow\_2}\}}
-
-&
-\textbf{Language Model}
-
-We use a language model to convert each of the simple noun phrases into individual distributions over possible objects.
-
-\\ $\Downarrow$ & ~ \\[0.2cm] 
-
-\scalebox{.9}{\Tree [.TARGET \qroof{$\{90\%, 2\%, \ldots 1\%\}$}.OBJECT ]} 
-
-~
-
-\scriptsize{\{\textit{orange\_1}, \textit{orange\_2}, $\ldots $, \textit{blue\_1}\} }
-
-&
-\textbf{Bottom-up Evaluation}
-
-We evaluate the tree from the bottom upwards, using spatial features and trained weights to convert each input distribution and the type of preposition into a set of output scores. The final result is the object with the highest score.
-\end{tabularx}
-\caption{The processing steps in our algorithm.}
-\label{fig:proc_flow}
-\end{figure*}
-\clearpage
-
 \begin{figure*}[tb]
 \newcommand{\inctest}[1]{\includegraphics[trim={0 3cm 5cm 3.5cm},clip,width=0.5\textwidth]{test_set_example/Slide##1}}
 \centering
@@ -167,17 +105,17 @@ We evaluate the tree from the bottom upwards, using spatial features and trained
    ~
 & \emph{``--''} \\
   Cube 4 is the target of the referring expression. 
-& Without any information, distribution is uniform over all objects. \\[2em]
+& Without any information, distribution is uniform over all objects. \\[1em]\hline\\[1em]
 \inctest{37} & \inctest{39} \\
   \emph{``Orange--''}
 & \emph{``Orange cube between--''} \\
-  The first word makes many objects very unlikely.
-& Symmetry of the distribution is broken by the preposition. \\[2em]
+  The first word increases the probability of all cubes and reduces the probability of all non-cubes.
+& Symmetry of the distribution is broken by the preposition because some cubes are between more pairs of objects than other cubes. This occurs because we marginalize over all possible pairs of objects that between can be grounded on. \\[1em]\hline\\[1em]
 \inctest{41} & \inctest{45} \\
   \emph{``Orange cube between the toy--''}
 & \emph{``Orange cube between the toy and the tape roll.''} \\
-  Providing a grounding further changes the distribution. 
-& Cube 4 has the highest assigned probability.
+  The direct provision of one of between's groundings shifts the distribution towards cubes that are between  the toy plane and other cubes.
+& At the end of the input, cube 4 has the highest assigned probability.
 \end{tabular}
 
 \vspace{0.5in}
@@ -188,7 +126,15 @@ We evaluate the tree from the bottom upwards, using spatial features and trained
 \clearpage
 }
 
-Given a sequence of words $\Lambda_\circ = \lambda_1, \lambda_2, \ldots, \lambda_t$, we estimate $\Gamma$, the distribution of the objects the user is referring to. $\Gamma$ is a distribution over $\xi$, the set of all objects on the table.
+We evaluate our model on novel real-world data and show that it assigns the correct object the highest probability 32.8\% of the time and in the top-3 objects 63.5\% of the time. In comparison, humans correctly identify the object 79.0\% of the time, a unigram model 16.1\% of the time and random selection is only correct 7.2\% of the time. We also show how incremental performance converges to the above values as more words are available.
+
+Figure~\ref{fig:worked_example} shows an example of the incremental parsing of a referring expression. As more words are available to the parser, the parser identifies the target object by assigning it the highest probability.
+
+
+
+\section{Technical Approach}
+
+Given a sequence of words $\lambda_1, \lambda_2, \ldots, \lambda_t$, we estimate $\Gamma$, the distribution of the objects the user is referring to. $\Gamma$ is a distribution over $\xi$, the set of all objects on the table.
 \begin{align}
 	& \Pr(\Gamma = \gamma | \lambda_1, \lambda_2, \ldots, \lambda_t)
 \end{align}
@@ -199,25 +145,13 @@ We then assume that we can factor the sequence of words into separate independen
    = & \Pr(\Gamma = \gamma | \Lambda_1, \Lambda_2, \ldots, \Lambda_k) 
 \intertext{Applying Bayes' rule:}
  = & \frac{\Pr(\Lambda_1, \Lambda_2, \ldots, \Lambda_k | \Gamma = \gamma) \cdot \Pr(\Gamma = \gamma)}{\Pr(\Lambda_1, \Lambda_2, \ldots, \Lambda_k)}
-\intertext{We assume a uniform prior on both language and target object, and so eliminate the other terms.}
+\intertext{We assume a uniform prior on both language and target object, and so eliminate the other terms. The algorithm will perform this calculation for all possible groundings $\gamma$, and account for the prior probabilities by normalizing the distribution.}
  \propto & \Pr(\Lambda_1, \Lambda_2, \ldots, \Lambda_k | \Gamma = \gamma)\label{eqn:assumeuniformprior}
 \intertext{We have assumed that the constitutents are independent, so we separate the terms.}
  = & \prod_{i=1}^k \Pr(\Lambda_i | \Gamma = \gamma) \label{eqn:combinedistribs}
 \end{align}
 
 This factorization is done using a chunking algorithm, \citep{McCallumMALLET}. We assume that the chunkings given here are certain, and so eliminate the probability term associated with that. For speed, we approximate with a chunking which has been shown to give good results in practice.
-
-We assume that each of these expressions can either be describing the target object or describing the location of the target object using a preposition. In the former case, we use a unigram model to estimate this probability. Details of this process are in Section \ref{sec:bottomupeval}; Equation~\ref{eqn:unigram_model} is reproduced here:
-\begin{align*}
-   & \Pr(\Lambda_j | \Gamma = \gamma) 
-\\ & = \prod_{\lambda \in \Lambda_j} \left( (1 - \alpha) * \frac{Q(\gamma, \lambda)}{\sum_{\omega} Q(\omega, \lambda)} + \frac{\alpha}{\xi} \right) \end{align*}
-
-In the latter case, we convert the expression to a combination of a spatial model of a preposition and at least one other distribution over objects. Details of this process are in Section \ref{sec:bottomupeval}; Equation~\ref{eqn:prepositions} is reproduced here:
-\begin{align*}
-   & \Pr(\Lambda_j | \Gamma = \gamma)
-\\ & \propto \sum_{\gamma_1 \in \xi} \cdots\sum_{\gamma_n \in \xi} \left(\prod_{i=1}^n \Pr(\Lambda_{j,i}|\Gamma_{j,i}) \right) \cdot \text{S}\left( \frac{f(\gamma, \gamma_1, \ldots) \cdot \theta_p}{z} \right)
-\end{align*}
-
 
 \subsection{Incremental Parsing Algorithm}
 
@@ -232,17 +166,17 @@ We attempt to locate the \textit{orange cube} using the following referring expr
   \centering
   \setlength{\qtreepadding}{3pt}
 \begin{tabular}{ccccccc}\hline\hline
-\Tree [.{$\Pr(\Gamma|\Lambda)$} \emph{The orange cube} [.{\emph{between}} \emph{the red} \emph{the yellow} ]] \vspace{0.12in} &
+\Tree [.{$\Pr(\Lambda|\Gamma)$} \emph{The orange cube} [.{\emph{between}} \emph{the red} \emph{the yellow} ]] \vspace{0.12in} &
 \pbox{0.2in}{\vspace{0.5in}
 $\Rightarrow$} &
-\Tree [.{$\Pr(\Gamma|\Lambda)$} {$\Pr(\Lambda_1 | \Gamma)$} [.{Preposition $p \in P$} {$\Pr(\Lambda_{2,1} | \Gamma)$} {$\Pr(\Lambda_{2,2} | \Gamma)$} ]] &
+\Tree [.{$\Pr(\Lambda|\Gamma)$} {$\Pr(\Lambda_1 | \Gamma)$} [.{Preposition $p \in P$} {$\Pr(\Lambda_{2,1} | \Gamma)$} {$\Pr(\Lambda_{2,2} | \Gamma)$} ]] &
 \pbox{0.2in}{\vspace{0.5in}
 $\Rightarrow$} &
-\Tree [.{$\Pr(\Gamma|\Lambda)$} {$\Pr(\Lambda_{1} | \Gamma)$} {$\Pr(\Lambda_{2} | \Gamma)$} ]
+\Tree [.{$\Pr(\Lambda|\Gamma)$} {$\Pr(\Lambda_{1} | \Gamma)$} {$\Pr(\Lambda_{2} | \Gamma)$} ]
 &
 \pbox{0.2in}{\vspace{0.5in}
 $\Rightarrow$} & 
-\Tree [.{$\Pr(\Gamma|\Lambda)$} ]
+\Tree [.{$\Pr(\Lambda|\Gamma)$} ]
 \\ \hline
 \multicolumn{2}{r}{\textbf{(Case 0)}} & \multicolumn{2}{r}{\textbf{(Case 1)}} & \multicolumn{2}{r}{\textbf{(Case 2)}}
 \end{tabular}
@@ -262,27 +196,25 @@ We model the relationship between words and tags as a conditional random field, 
 \label{sec:bottomupeval}
 Once we have a semantic tree, we can simplify the tree in a bottom-up manner to obtain the final distribution. Figure~\ref{fig:bottom_up_eval} illustrates this process and the three possible cases we apply to convert the tree into a distribution over objects.
 
-\textbf{\textsc{Case 0}} Estimating the distribution of a grounding.
+\textbf{\textsc{Case 1}} Estimating the distribution of a grounding.
 
 Each grounding in the tree is modeled by a distribution that is obtained from the language model. 
 \begin{align}
-   & \Pr(\Lambda_j | \Gamma = \gamma) 
-\\ & = \prod_{\lambda \in \Lambda_j} \left( (1 - \alpha) * \frac{Q(\gamma, \lambda)}{\sum_{\omega} Q(\omega, \lambda)} + \frac{\alpha}{|\xi|} \right) \label{eqn:unigram_model}
+   \Pr(\Lambda_j | \Gamma = \gamma) 
+ = \prod_{\lambda \in \Lambda_j} \left( \frac{Q(\gamma, \lambda) + \alpha}{\sum_{\omega} Q(\omega, \lambda) + \alpha \cdot |\xi|} \right) \label{eqn:unigram_model}
 \end{align}
 
-The language model used is a unigram language model, where each word $\lambda$ refers to object $\gamma$ with some joint score $Q(\gamma, \lambda)$ that we can estimate statistically. The distribution of simple noun phrase $\Lambda_j$ referring to object $\gamma$ is given by Equation~\ref{eqn:unigram_model}. For smoothing, we assume that there is some small probability $\alpha$ that the object is uniformly at random chosen without regard to the word. We arbitrarily set $\alpha \approx 5\%$. $\xi$ is the set of all objects, and $|\xi|$ is the number of objects.
+The language model used is a unigram language model, where each word $\lambda$ refers to object $\gamma$ with some joint score $Q(\gamma, \lambda)$. In our model, we set $Q(\gamma, \lambda)$ to be the number of times that $\lambda$ was used to describe $\gamma$ in our training set. The distribution of simple noun phrase $\Lambda_j$ referring to object $\gamma$ is given by Equation~\ref{eqn:unigram_model}. We use add-alpha smoothing arbitrarily setting $\alpha \approx 5\%$. $\xi$ is the set of all objects, and $|\xi|$ is the number of objects.
 
-A simple implementation will be able to perform a lookup in $\mathcal{O}(|\Lambda_j|)$ time, where $|\Lambda_j|$ is the number of words in $\Lambda_j$.
+Our implementation will be able to perform a lookup in $\mathcal{O}(|\Lambda_j|)$ time, where $|\Lambda_j|$ is the number of words in $\Lambda_j$.
 
-\textbf{\textsc{Case 1}} Simplifying a preposition and associated noun-phrases.
+\textbf{\textsc{Case 2}} Simplifying a preposition and associated noun-phrases.
 
 We have preposition $p \in P = $ \{`near', `left', `right', `front', `behind', `between'\}. The $i^\text{th}$ grounding that the preposition relies on is modeled by the distributions $\Pr(\Lambda_{j,i}|\Gamma_{j,i})$, obtained from the language model (See Case 0). We find $\Pr(\Lambda_j | \Gamma = \gamma)$ with:
 
 \break
-
+We use the structure of prepositional phrases to factor $\Lambda_j$ into a preposition and groundings. $\Lambda_{j,P}$ refers to the subset of $\Lambda_{j}$ which describes the preposition (e.g. the word ``between'' or ``near''), and corresponds to $P$. Each $\Lambda_{j,i}$ refers to the subset of $\Lambda_{j}$ which describes the $i^\text{th}$ object that the preposition references (i.e. the object to which the target is ``near'') and corresponds to the distribution over all objects $\Gamma_{j,i}$. Let $n$ be the number of such groundings.
 \begin{align}
-   & \Pr(\Lambda_j | \Gamma = \gamma)
-\intertext{Use the structure of prepositional phrases to factor $\Lambda_j$ into a preposition and groundings. $\Lambda_{j,P}$ refers to the subset of $\Lambda_{j}$ which describes the preposition (e.g. the word ``between'' or ``near''), and corresponds to $P$, the distribution over possible prepositions. Each $\Lambda_{j,i}$ refers to the subset of $\Lambda_{j}$ which describes the $i^\text{th}$ object that the preposition references (i.e. the object to which the target is ``near'') and corresponds to the distribution over all objects $\Gamma_{j,i}$. Let $n$ be the number of such groundings.}
 \begin{split}
 & = \sum_{p \in P} \sum_{\gamma_1 \in \xi} \cdots\sum_{\gamma_n \in \xi}
 \\ & \phantom{=}~ \Pr(\Lambda_{j,P},\Lambda_{j,1}, \ldots, \Lambda_{j,n}| P = p, \Gamma_{j,1} = \gamma_1, \ldots, \Gamma_{j,n} = \gamma_n)
@@ -333,7 +265,8 @@ We now consider this remaining inner term, modeling it with the prepositional sp
    & = \text{S}\left( \frac{f(\gamma, \gamma_1, \ldots) \cdot \theta_p}{z} \right) \label{eqn:prep_model_inner}
 \end{align}
 
-We can estimate $\theta_p$ for each $p$ using logistic regression, and select feature-vector function $f$ separately.
+We estimate $\theta_p$ for each $p$ using logistic regression, with the feature-vector functions detailed in \ref{sec:featurevectors}.
+
 
 We substitute the spatial model in Equation~\ref{eqn:prep_model_inner} into Equation~\ref{eqn:prep_model_pending}, and obtain:
 \begin{align}
@@ -345,7 +278,7 @@ We substitute the spatial model in Equation~\ref{eqn:prep_model_inner} into Equa
 We observe that the na\"ive implementation takes time to the order of $\mathcal{O}(|\xi|^{n+1})$, where $|\xi|$ is the number of objects and $n$ is the number of groundings that each preposition has.
 
 
-\textbf{\textsc{Case 2}} Combining multiple distributions.
+\textbf{\textsc{Case 3}} Combining multiple distributions.
 
 In Figure~\ref{fig:bottom_up_eval}, we simplify groundings $Pr(\Lambda_1 | \Gamma = \gamma)$ and derived distribution $Pr(\Lambda_2 | \Gamma = \gamma)$ to get $\Gamma$, our estimated distribution. As established in the initial factorization, we simply take the inner product of all distributions to find the overall distribution. Equation~\ref{eqn:combinedistribs} is reproduced here:
 \begin{align*}
@@ -356,6 +289,30 @@ In Figure~\ref{fig:bottom_up_eval}, we simplify groundings $Pr(\Lambda_1 | \Gamm
 The na\"ive implementation also takes time to the order of $\mathcal{O}(|\xi|^{n+1})$, where $|\xi|$ is the number of objects and $n$ is the number of groundings for which the marginal distribution must be taken.
 
 These cases are sufficient to recursively reduce the tree into a single distribution.
+
+\subsection{Feature-Vector Functions}
+\label{sec:featurevectors}
+
+Before features are computed, all scenes are scaled so that longer axis lies from 0 to 1. The aspect ratio of axes is maintained.
+
+For all one-place prepositions (`near', `left', `right', `front', `behind'), we use only three features. The target object is located at $(x_\gamma, y_\gamma)$, and the object referred to by the preposition is at $(x_1, y_1)$. 
+\begin{flushleft}
+\begin{enumerate}
+\item The difference in the x-coordinate: $f_1((x_\gamma, y_\gamma), (x_1, y_1)) = x_\gamma - x_1$
+\item The difference in the y-coordinate: $f_2((x_\gamma, y_\gamma), (x_1, y_1)) = y_\gamma - y_1$
+\item The Cartesian distance: $f_3((x_\gamma, y_\gamma), (x_1, y_1)) = \sqrt{(y_\gamma - y_1)^2 (x_\gamma - x_1)^2}$
+\end{enumerate}
+\end{flushleft}
+
+For the only two-place preposition (`between'), we first   draw a line connecting the two grounding objects. We project the point corresponding to the target object onto that line, and compute the distance from the midpoint along the line and perpendicular to the line, scaled by the distance between the two objects. 
+We have three different features, all in terms of the parallel distance $p$ and the perpendicular distance $q$: 
+\begin{flushleft}
+\begin{enumerate}
+\item The parallel distance: $f_1(p, q) = |p|$
+\item The perpendicular distance: $f_2(p, q) = |q|$
+\item The product of the distances: $f_1(p, q) = (|p| +\epsilon)\cdot(|q| + \epsilon)$, with arbitrary $\epsilon = .1$.
+\end{enumerate}
+\end{flushleft}
 
 \subsection{Incremental Parsing}
 
