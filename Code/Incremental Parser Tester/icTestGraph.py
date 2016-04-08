@@ -39,8 +39,10 @@ def run():
     #computeBatchTable(rv);
     #plotNCorrectnessByFraction(rv, 5);
     #plotNCorrectnessByWord(rv, 5);
-    computeCorrectnessInterrater(rv);
+    #computeCorrectnessInterrater(rv);
     
+    runExamineSpecific();
+
     # scatterEntropy(rv);
     #plotNCorrectnessByWord(rv, 5);
             

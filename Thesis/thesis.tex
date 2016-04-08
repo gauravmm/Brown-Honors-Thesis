@@ -101,17 +101,17 @@ The incremental parser works by using a conditional-random field chunker to add 
 
 \newcolumntype{L}{>{\centering\arraybackslash}m{0.5\textwidth}}
 \begin{tabular}{LL}
-\inctest{34} & \inctest{36} \\
+\inctest{5} & \inctest{6} \\
    ~
 & \emph{``--''} \\
   Cube 4 is the target of the referring expression. 
 & Without any information, distribution is uniform over all objects. \\[1em]\hline\\[1em]
-\inctest{37} & \inctest{39} \\
+\inctest{7} & \inctest{9} \\
   \emph{``Orange--''}
 & \emph{``Orange cube between--''} \\
   The first word increases the probability of all cubes and reduces the probability of all non-cubes.
 & Symmetry of the distribution is broken by the preposition because some cubes are between more pairs of objects than other cubes. This occurs because we marginalize over all possible pairs of objects that between can be grounded on. \\[1em]\hline\\[1em]
-\inctest{41} & \inctest{45} \\
+\inctest{11} & \inctest{15} \\
   \emph{``Orange cube between the toy--''}
 & \emph{``Orange cube between the toy and the tape roll.''} \\
   The direct provision of one of between's groundings shifts the distribution towards cubes that are between  the toy plane and other cubes.
@@ -296,7 +296,7 @@ To select the final set of prepositions $P = $ \{`near', `left', `right', `front
 
 From this test, the initial set of prepositions was selected to be \{`near', `far', `left', `right', `front', `behind', `between'\}, including the preposition ``right'' as the counterpart to ``left''. After gathering more data, the lack of data forced us to drop `far'. 
 
-We included the list of prepositions in the prompt to encourage people to use them in their input. See Section~\ref{sec:datacollection}.
+We included the list of prepositions in the prompt to encourage people to use them in their input, which likely limited the number of other prepositions in the training set: manual inspection of the training set revealed no significant unrecognized prepositions. See Section~\ref{sec:datacollection} for details on the collection and human evaluation of referring expressions.
 
 \subsection{Feature-Vector Functions}
 \label{sec:featurevectors}
