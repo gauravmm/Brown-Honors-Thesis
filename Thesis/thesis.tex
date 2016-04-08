@@ -140,7 +140,7 @@ Given a sequence of words $\lambda_1, \lambda_2, \ldots, \lambda_t$, we estimate
 	& \argmax_{\gamma \in \xi} \Pr(\Gamma = \gamma | \lambda_1, \lambda_2, \ldots, \lambda_t) \
 \end{align}
 
-We borrow the application of correspondence variables from work by \citet{tellex2011understanding}. We reformulate the problem with correspondence variable $\Phi$, which is true if and only if the object $\gamma$ is correctly identified:
+We borrow the application of correspondence variables from work by \citet{tellex2011understanding}. We reformulate the problem with correspondence variable $\Phi$, which is true if and only if the object $\gamma$ is correctly identified by $\lambda_1, \lambda_2, \ldots, \lambda_t$:
 \begin{align}
 	& \argmax_{\gamma \in \xi} \Pr(\Phi = \true | \Gamma = \gamma, \lambda_1, \lambda_2, \ldots, \lambda_t)
 \end{align}
@@ -172,19 +172,20 @@ We attempt to locate the \textit{orange cube} using the following referring expr
 
 \begin{figure*}[b]
   \centering
-  \setlength{\qtreepadding}{3pt}
+  \small
+  \setlength{\qtreepadding}{1pt}
 \begin{tabular}{ccccccc}\hline\hline
-\Tree [.{$\Pr(\Lambda|\Gamma)$} \emph{The orange cube} [.{\emph{between}} \emph{the red} \emph{the yellow} ]] \vspace{0.12in} &
+\Tree [.{$\Pr(\Lambda, \Gamma | \Phi)$} \emph{The orange cube} [.{\emph{between}} \emph{the red} \emph{the yellow} ]] \vspace{0.12in} &
 \pbox{0.2in}{\vspace{0.5in}
 $\Rightarrow$} &
-\Tree [.{$\Pr(\Lambda|\Gamma)$} {$\Pr(\Lambda_1 | \Gamma)$} [.{Preposition $p \in P$} {$\Pr(\Lambda_{2,1} | \Gamma)$} {$\Pr(\Lambda_{2,2} | \Gamma)$} ]] &
+\Tree [.{$\Pr(\Lambda, \Gamma | \Phi)$} {$\Pr(\Lambda_1, \Gamma | \phi_1)$} [.{Preposition $p \in P$} {$\Pr(\Lambda_{2,1}, \Gamma | \phi_{2,1})$} {$\Pr(\Lambda_{2,2}, \Gamma | \phi_{2,2})$} ]] &
 \pbox{0.2in}{\vspace{0.5in}
 $\Rightarrow$} &
-\Tree [.{$\Pr(\Lambda|\Gamma)$} {$\Pr(\Lambda_{1} | \Gamma)$} {$\Pr(\Lambda_{2} | \Gamma)$} ]
+\Tree [.{$\Pr(\Lambda, \Gamma | \Phi)$} {$\Pr(\Lambda_{1}, \Gamma|\phi_1)$} {$\Pr(\Lambda_{2}, \Gamma|\phi_2)$} ]
 &
 \pbox{0.2in}{\vspace{0.5in}
 $\Rightarrow$} & 
-\Tree [.{$\Pr(\Lambda|\Gamma)$} ]
+\Tree [.{$\Pr(\Lambda, \Gamma | \Phi)$} ]
 \\ \hline
 \multicolumn{2}{r}{\textbf{(Case 0)}} & \multicolumn{2}{r}{\textbf{(Case 1)}} & \multicolumn{2}{r}{\textbf{(Case 2)}}
 \end{tabular}
@@ -196,7 +197,7 @@ $\Rightarrow$} &
 \subsection{Chunking and Semantic Tree construction}
 \label{sec:tagging}
 
-The algorithm's input is a sequence of words which needs to be transformed to a semantic tree for use with later stages. The first stage in this transformation is to assign a tag to each word that is similar to parts-of-speech tags. Instead of using the full set of English parts of speech, we use a reduced set developed for this  application. An example of this transformation is in Figure~\ref{fig:proc_flow}.
+The algorithm's input is a sequence of words which needs to be transformed to a semantic tree for use with later stages. The first stage in this transformation is to assign a tag to each word that is similar to parts-of-speech tags. Instead of using the full set of English parts of speech, we use a reduced set developed for this  application.
 
 We model the relationship between words and tags as a conditional random field, where the tag for any particular word depends on the neighboring words. We directly estimate the distribution of tags using the existing library Mallet, developed by \citet{McCallumMALLET}. The transformation from the tagged sequence to the semantic tree is entirely deterministic, as the tags are tailored to the specific form of the queries in the corpus.
 
@@ -208,8 +209,8 @@ Once we have a semantic tree, we can simplify the tree in a bottom-up manner to 
 
 Each grounding in the tree is modeled by a distribution that is obtained from the language model. 
 \begin{align}
-   \Pr(\Gamma = \gamma, \Lambda_i | \phi_i) 
- = \prod_{\lambda \in \Lambda_j} \left( \frac{Q(\gamma, \lambda) + \alpha}{\sum_{\omega} Q(\omega, \lambda) + \alpha \cdot |\xi|} \right) \label{eqn:unigram_model}
+   \Pr(\Gamma = \gamma, \Lambda_i | \phi_i = \true)
+& = \prod_{\lambda \in \Lambda_j} \left( \frac{Q(\gamma, \lambda) + \alpha}{\sum_{\omega} Q(\omega, \lambda) + \alpha \cdot |\xi|} \right) \label{eqn:unigram_model}
 \end{align}
 
 The language model used is a unigram language model, where each word $\lambda$ refers to object $\gamma$ with some joint score $Q(\gamma, \lambda)$. In our model, we set $Q(\gamma, \lambda)$ to be the number of times that $\lambda$ was used to describe $\gamma$ in our training set. The distribution of simple noun phrase $\Lambda_j$ referring to object $\gamma$ is given by Equation~\ref{eqn:unigram_model}. We use add-alpha smoothing arbitrarily setting $\alpha \approx 5\%$. $\xi$ is the set of all objects, and $|\xi|$ is the number of objects.
@@ -218,32 +219,10 @@ Our implementation will be able to perform a lookup in $\mathcal{O}(|\Lambda_j|)
 
 \textbf{\textsc{Case 2}} Simplifying a preposition and associated noun-phrases.
 
-We have preposition $p \in P = $ \{`near', `left', `right', `front', `behind', `between'\}. The $i^\text{th}$ grounding that the preposition relies on is modeled by the distributions $\Pr(\Lambda_{j,i}|\Gamma_{j,i})$, obtained from the language model (See Case 0). In this case, we model We find $\Pr(\Lambda_j | \Gamma = \gamma)$ with:
-
-We use the structure of prepositional phrases to factor $\Lambda_j$ into a preposition and groundings. $\Lambda_{j,P}$ refers to the subset of $\Lambda_{j}$ which describes the preposition (e.g. the word ``between'' or ``near''), and corresponds to $P$. Each $\Lambda_{j,i}$ refers to the subset of $\Lambda_{j}$ which describes the $i^\text{th}$ object that the preposition references (i.e. the object to which the target is ``near'') and corresponds to the distribution over all objects $\Gamma_{j,i}$. Let $n$ be the number of such groundings.
-\begin{align}
-& \Pr(\Gamma = \gamma, \Lambda_i | \phi_i) \nonumber
-\\ & = \Pr(\Gamma = \gamma, \Lambda_{j,P},\Lambda_{j,1}, \ldots, \Lambda_{j,n}| \phi_i)
-\\ \begin{split}
-& = \sum_{\gamma_1 \in \xi} \cdots\sum_{\gamma_n \in \xi}
-\\ & \phantom{=}~ \Pr(\Lambda_{j,P},\Lambda_{j,1}, \ldots, \Lambda_{j,n}| \Gamma = \gamma, \Gamma_{j,1} = \gamma_1, \ldots, \Gamma_{j,n} = \gamma_n)
-\\ & \phantom{=}~\cdot \Pr(\Gamma = \gamma, \Gamma_{j,1} = \gamma_1, \ldots, \Gamma_{j,n} = \gamma_n | \phi_i)
-\end{split}
-\intertext{We assume that each grounding is independent, which allows us to separate each grounding in the first inner term:}
-\begin{split}
-& = \sum_{p \in P} \sum_{\gamma_1 \in \xi} \cdots\sum_{\gamma_n \in \xi}
-\\ & \phantom{=}~ \Pr(\Lambda_{j,P} | P = p) \cdot \left(\prod_{i=1}^n \Pr(\Lambda_{j,i}|\Gamma_{j,i} = \gamma_i) \right)
-\\ & \phantom{=}~\cdot \Pr(P = p, \Gamma_{j,1} = \gamma_1, \ldots, \Gamma_{j,n} = \gamma_n | \Gamma = \gamma)
-\end{split}
-\intertext{We assume that prepositions are certain, and so eliminate the associated term and summation.}
-\begin{split}
-& = \sum_{\gamma_1 \in \xi} \cdots\sum_{\gamma_n \in \xi}
-\\ & \phantom{=}~ \left(\prod_{i=1}^n \Pr(\Lambda_{j,i}|\Gamma_{j,i} = \gamma_i) \right) 
-\\ & \phantom{=}~ \cdot \Pr(P = p, \Gamma_{j,1} = \gamma_1, \ldots, \Gamma_{j,n} = \gamma_n | \Gamma = \gamma)\label{eqn:prep_model_pending}
-\end{split}
-\end{align}
+We have preposition $p \in P = $ \{`near', `left', `right', `front', `behind', `between'\}. We discuss the selection of these in Section~\ref{sec:prepselect}.
 
 \begin{figure*}[!b]
+  \small
   \centering
 \begin{tabular}{ccccc}\hline\hline
 \Tree [.$\circ$ [.\fbox{cache miss} [.\fbox{cache miss} \emph{The orange cube} ] ]] &
@@ -260,44 +239,64 @@ $\Rightarrow$} &
   \label{fig:incremental_caching}
 \end{figure*}
 
-We now consider this remaining inner term, modeling it with the prepositional spatial model:
+We begin with $\Pr(\Gamma = \gamma, \Lambda_i | \phi_i = \true)$. We use the structure of prepositional phrases to factor $\Lambda_j$ into a preposition and groundings. $\Lambda_{j,P}$ refers to the subset of $\Lambda_{j}$ which describes the preposition (e.g. the word ``between'' or ``near''), and corresponds to $P$. Each $\Lambda_{j,i}$ refers to the subset of $\Lambda_{j}$ which describes the $i^\text{th}$ object that the preposition references (i.e. the object to which the target is ``near'') and corresponds to the distribution over all objects $\Gamma_{j,i}$. Let $n$ be the number of such groundings.
 \begin{align}
-& \Pr(P = p, \Gamma_{j,1} = \gamma_1, \ldots, \Gamma_{j,n} = \gamma_n | \Gamma = \gamma)
-\intertext{Applying Bayes' theorem:}
+ & = \Pr(\Gamma = \gamma, \Lambda_{j,P},\Lambda_{j,1}, \ldots, \Lambda_{j,n}| \phi_i = \true)
+\intertext{We apply the law of total probability and introduce terms for each possible grounding.}
 \begin{split}
-& = \Pr(\Gamma = \gamma | P = p, \Gamma_{j,1} = \gamma_1, \ldots, \Gamma_{j,n} = \gamma_n) 
-\\ & \phantom{=}~\cdot \frac{\Pr(P = p, \Gamma_{j,1} = \gamma_1, \ldots, \Gamma_{j,n} = \gamma_n)}{\Pr(\Gamma = \gamma)}
+& \sum_{\gamma_1 \in \xi} \cdots\sum_{\gamma_n \in \xi}
+\\ & \phantom{=}~\Pr(\Gamma = \gamma,  \Lambda_{j,P} \Gamma_{j,1} = \gamma_i, \ldots, \Gamma_{j,n} = \gamma_n| \phi_i = \true)
+\\ & \phantom{=}~\cdot \Pr(\Lambda_{j,1}, \ldots, \Lambda_{j,n} | \Gamma_{j,1} = \gamma_1, \ldots, \Gamma_{j,n} = \gamma_n)
 \end{split}
-\intertext{Since we have already assumed that prepositions are certain and that the prior probability of all groundings is uniform over all objects, we can simply this to:}
-& \propto \Pr(\Gamma = \gamma | P = p, \Gamma_{j,1} = \gamma_1, \ldots, \Gamma_{j,n} = \gamma_n) 
-\intertext{We parametrize this with feature-vector function $f$, weights $\theta_p$, logistic function $S$, and some normalization factor $z$:}
-   & = \text{S}\left( \frac{f(\gamma, \gamma_1, \ldots) \cdot \theta_p}{z} \right) \label{eqn:prep_model_inner}
+\intertext{We once again invoke the concept of correspondence variables, letting $\phi = \true$ if $\Gamma_{j,i} = \gamma_i$ corresponds to $\Lambda_{j,i}$. We further assume that each grounding is independent, which allows us to separate the grounding term:}
+\begin{split}
+& = \sum_{\gamma_1 \in \xi} \cdots\sum_{\gamma_n \in \xi} \left( \prod_{i = 1}^n\Pr(\Lambda_{j,i}, \Gamma_{j,i} = \gamma_i | \phi_{j,i} = \true) \right)
+\\ & \phantom{=}~\Pr(\Gamma = \gamma,  \Lambda_{j,P} \Gamma_{j,1} = \gamma_i, \ldots, \Gamma_{j,n} = \gamma_n| \phi_i = \true)
+\end{split}
+\intertext{The last term relates all the groundings and the target object with the preposition used. We parametrize it with feature-vector function $f$, weights $\theta_p$, logistic function $S$, and some normalization factor $z$. $\theta_p$ is calculated by performing logistic regression, with the feature-vector functions $f$ detailed in \ref{sec:featurevectors}.}
+\begin{split}
+& = \sum_{\gamma_1 \in \xi} \cdots\sum_{\gamma_n \in \xi} \left( \prod_{i = 1}^n\Pr(\Lambda_{j,i}, \Gamma_{j,i} = \gamma_i | \phi_{j,i} = \true) \right)
+\\ & \phantom{=}~\text{S}\left( \frac{f(\gamma, \gamma_1, \ldots) \cdot \theta_p}{z} \right)
+\end{split}
 \end{align}
 
-We estimate $\theta_p$ for each $p$ using logistic regression, with the feature-vector functions detailed in \ref{sec:featurevectors}.
-
-
-We substitute the spatial model in Equation~\ref{eqn:prep_model_inner} into Equation~\ref{eqn:prep_model_pending}, and obtain:
-\begin{align}
-   & \Pr(\Lambda_j | \Gamma = \gamma) \nonumber
-\\ 
-& \propto \sum_{\gamma_1 \in \xi} \cdots\sum_{\gamma_n \in \xi} \left(\prod_{i=1}^n \Pr(\Lambda_{j,i}|\Gamma_{j,i}) \right) \cdot \text{S}\left( \frac{f(\gamma, \gamma_1, \ldots) \cdot \theta_p}{z} \right) \label{eqn:prepositions}
-\end{align}
-
-We observe that the na\"ive implementation takes time to the order of $\mathcal{O}(|\xi|^{n+1})$, where $|\xi|$ is the number of objects and $n$ is the number of groundings that each preposition has.
+We observe that our na\"ive implementation takes time to the order of $\mathcal{O}(|\xi|^{n+1})$, where $|\xi|$ is the number of objects and $n$ is the number of groundings that each preposition has.
 
 
 \textbf{\textsc{Case 3}} Combining multiple distributions.
 
-In Figure~\ref{fig:bottom_up_eval}, we simplify groundings $Pr(\Lambda_1 | \Gamma = \gamma)$ and derived distribution $Pr(\Lambda_2 | \Gamma = \gamma)$ to get $\Gamma$, our estimated distribution. As established in the initial factorization, we simply take the inner product of all distributions to find the overall distribution. Equation~\ref{eqn:combinedistribs} is reproduced here:
+In Figure~\ref{fig:bottom_up_eval}, we simplify groundings $Pr(\Lambda_1, \Gamma = \gamma | \phi_1)$ and derived distribution $Pr(\Lambda_2, \Gamma = \gamma | | \phi_2)$ to get $\Gamma$, our estimated distribution. As established in the initial factorization, we simply take the inner product of all distributions to find the overall distribution. Equation~\ref{eqn:combinedistribs} is reproduced here:
 \begin{align*}
-  & \Pr(\Gamma = \gamma | \lambda_1, \lambda_2, \ldots, \lambda_t)
-  \\ = & \prod_{i=1}^k \Pr(\Lambda_i | \Gamma = \gamma) 
-\end{align*}
+& \Pr(\Gamma = \gamma | \lambda_1, \lambda_2, \ldots, \lambda_t) = 
+\prod_{i=1}^k \Pr(\Gamma = \gamma, \Lambda_i | \phi_i)\end{align*}
 
 The na\"ive implementation also takes time to the order of $\mathcal{O}(|\xi|^{n+1})$, where $|\xi|$ is the number of objects and $n$ is the number of groundings for which the marginal distribution must be taken.
 
-These cases are sufficient to recursively reduce the tree into a single distribution.
+\subsection{Preposition Choice}
+\label{sec:prepselect}
+
+To select the final set of prepositions $P = $ \{`near', `left', `right', `front', `behind', `between'\}, we performed an online test with humans to identify the prepositions people naturally use when performing such tasks. We gathered 68 prepositions over 58 sentences, and grouped them by meaning. Figure~\ref{fig:prepositionlist} contains the exhaustive list.
+
+\begin{figure}[h!]
+  \small
+  \centering
+  \raggedright
+  \setlength\tabcolsep{2pt}
+  \begin{tabular}{|r c lllll|}\hline
+  33 & \textbf{between} & between &&&& \\
+  18 & \textbf{near} & closest (to) & next (to) & near & nearer & closer  \\
+  7 & \textbf{in front} & in front (of) & below & bottom && \\
+  4 & \textbf{left} & left &&&& \\
+  3 & \textbf{behind} & top (of) & behind &&& \\
+  3 & \textbf{far} & far (from) & far away & farthest && \\\hline
+  \end{tabular}
+  \caption{The prepositions people naturally use, characterized by an initial test. The prepositions are grouped by meaning, with the frequency of each group on the left. The exact usage is shown decreasing in frequency from left to right.}
+  \label{fig:prepositionlist}
+\end{figure}
+
+From this test, the initial set of prepositions was selected to be \{`near', `far', `left', `right', `front', `behind', `between'\}, including the preposition ``right'' as the counterpart to ``left''. After gathering more data, the lack of data forced us to drop `far'. 
+
+We included the list of prepositions in the prompt to encourage people to use them in their input. See Section~\ref{sec:datacollection}.
 
 \subsection{Feature-Vector Functions}
 \label{sec:featurevectors}
@@ -319,7 +318,7 @@ We have three different features, all in terms of the parallel distance $p$ and 
 \begin{enumerate}
 \item The parallel distance: $f_1(p, q) = |p|$
 \item The perpendicular distance: $f_2(p, q) = |q|$
-\item The product of the distances: $f_1(p, q) = (|p| +\epsilon)\cdot(|q| + \epsilon)$, with arbitrary $\epsilon = .1$.
+\item The smoothed product of the distances: $f_1(p, q) = (|p| +\epsilon)\cdot(|q| + \epsilon)$, with arbitrary $\epsilon = .1$.
 \end{enumerate}
 \end{flushleft}
 
@@ -411,6 +410,7 @@ We collected a corpus of human-generated data using Human Intelligence Tasks (HI
 
 
 \subsection{Data Collection}
+\label{sec:datacollection}
 A set of HITs were created to elicit referring expressions. A total of 19 scenes were constructed, each with a set of about 12 to 15 objects scattered on a table and at least 6 identical orange cubes. For each orange cube in each scene, 9 different workers were told to ask a robot across the table for the indicated orange cube. Figure~\ref{fig:ref_expr_examples_pic} provides an example of such a labeled scene.
 
 We provide the following instructions:
