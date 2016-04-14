@@ -72,7 +72,7 @@
 \maketitle
 
 \section{Abstract}
-An important problem in human-robot interaction is that of referring expressions: phrases used to identify a particular object among others. There are existing models to parse these, but all operate on entire sentences; incrementally parsing referring expressions has applications in human-robot interaction and conversational feedback. We present a model for parsing real-word referring expressions, trained and tested on human-provided data. In our test corpus, when presented with the entire sentence, our model identifies the correct object 60.3\% of the time, and ranks the correct object in the top three 79.0\% of the time. In comparison, humans identify the correct object 79.0\% of the time. Incremental performance is also characterized.
+An important problem in human-robot interaction is that of referring expressions: phrases used to identify a particular object among others. There are existing models to parse these, but all operate on entire sentences. Incrementally parsing referring expressions has applications in human-robot interaction and conversational feedback. We present a model for parsing real-word referring expressions, trained and tested on human-provided data. In our test corpus, when presented with the entire sentence, our model ranks the correct object as the most likely 60.3\% of the time, and ranks the correct object in the top three 79.0\% of the time. Given the entire sentence humans identify the correct object 79.0\% of the time. Incremental performance is also characterized.
 
 
 \section{Introduction}
@@ -90,9 +90,7 @@ Referring expressions are phrases used to identify a particular object in a scen
 
 In current work, referring expression parsing is done in batch-mode, with the entire referring expression as input. \citep{tellex2011understanding,UW_RSE_ICML2012,artzi2013weakly,fang2015embodied} During interactive use, batch-mode requires waiting for the complete utterance before processing and providing output, which introduces unaccceptable latency in the robot's response. For example, practical implementations of the $G^3$ system, as created by \citet{tellex2011understanding}, can take up to 30 seconds from the end of the input to the start of a response. Our incremental parsing system updates the distribution with each added word, substantially reducing the delay between input and response.
 
-In this paper we present an incremental referring expression parser that can process prepositional phrases. The incremental nature of the parser is the key contribution: state-of-the-art parsers all operate on complete referring expressions. 
-
-The incremental parser works by using a conditional-random field chunker to add parts of speech tags to sentences. These tags are used to construct a parse tree, which is then evaluated using an object-word model to resolve references to objects and a preposition model to resolve prepositional phrases. A caching method avoids recomputation cost and gives good worst-case time guarantees.
+xThe incremental parser works by using a conditional-random field chunker to add parts of speech tags to sentences. These tags are used to construct a parse tree, which is then evaluated using an object-word model to resolve references to objects and a preposition model to resolve prepositional phrases. A caching method avoids recomputation cost and gives good worst-case time guarantees.
 
 \afterpage{%
 \begin{figure*}[tb]
@@ -126,16 +124,33 @@ The incremental parser works by using a conditional-random field chunker to add 
 \clearpage
 }
 
-We evaluate our model on novel real-world data and show that it assigns the correct object the highest probability 32.8\% of the time and in the top-3 objects 63.5\% of the time. In comparison, humans correctly identify the object 79.0\% of the time, a unigram model 16.1\% of the time and random selection is only correct 7.2\% of the time. We also show how incremental performance converges to the above values as more words are available.
+We evaluate our model on novel real-world data and show that it assigns the correct object the highest probability 32.8\% of the time and in the top-3 objects 63.5\% of the time. In comparison, humans correctly identify the object 79.0\% of the time, a unigram model 16.1\% of the time and random selection is only correct 7.2\% of the time. We also show how incremental performance converges to the above values as more words are available. Figure~\ref{fig:worked_example} shows an example of the incremental parsing of a referring expression. As more words are available to the parser, the parser identifies the target object by assigning it the highest probability.
 
-Figure~\ref{fig:worked_example} shows an example of the incremental parsing of a referring expression. As more words are available to the parser, the parser identifies the target object by assigning it the highest probability.
 
+\section{Related Work}
+
+Prepositional phrases have not been subject to as much computational analysis and study as noun- and verb-phrases. However, there are still a number of papers related to the topic. 
+
+There is an existing family of related work by \citet{tellex2011understanding}, \citet{UW_RSE_ICML2012}, and \citet{artzi2013weakly}, all of whom present modern models to process referring expressions. These models all operate on entire input sentences and are designed to parse general instructions and commands instead of only prepositional phrases. 
+\citet{tellex2011understanding} present the $G^3$ framework. We use several key ideas from this paper: in particular we implicitly assume the binary correspondence variable that their model maximizes. Our algorithm is inspired in part by the algorithm they present.
+\citet{UW_RSE_ICML2012} present a state-of-the-art process to learn models for a semantic parser and word-classifier alignment. Our approach is substantially different from \citeauthor{UW_RSE_ICML2012}. since we do not separate perceptual features from the language model of each object. Also, in the learning phase of their algorithm, they calculate the marginal probability of a particular grounding and a particular word by performing a beam search over all possible parses. We assume instead that each node in the parse is independent of its sibling nodes, which allows us to use dynamic programming to incrementally build the distribution.
+\citet{artzi2013weakly} train Combinatory Categorial Grammars (CCG) with ambiguous validation functions to parse instructions, including spatial relations. While this approach is more flexible and likely performs better on entirely novel sentences, we deliberately choose a simpler model that lends itself to a dynamic programming approach.
+
+\citet{fang2015embodied} present a model to collaboratively generate a referring expression, incorporating feedback from the human subject to generate additional terms. The paper focuses on the generation of referring expressions and the use of gestural feedback, and so is of limited use in the context of this paper.
+
+In addition to these, we rely on previous work about prepositional phrases:
+
+\citet{collins95} present a model for disambiguating prepositional phrase attachments. They deal with Noun-Phrases and Verb-Phrases, but their statistical technique may be useful. This concept is also explored by \citet{ratna98}, and \citet{brill94}, each of whom suggest alternative models. Additionally, \citet{merlo97} explore disambiguating multiple prepositional phrases, rather than a single phrase between multiple targets, both of which are relevant to future work. However, our current model uses sentences focused around a single noun phrase, unlike the general English corpus used in this paper. Additionally, the incremental nature of our parsing requires an alternative framework, and as such not all techniques suggested in these papers can be used.
+
+Another issue we face is the challenge of identifying objects and mapping them to probability distributions via language model. To deal with this, \citet{barbu13} present a model for mapping language to object models in video data and \citet{UW_RSE_ICML2012} describe an approach to the problem of simultaneously observing and extracting representations of a perceived world. These approaches can be adapted to help design features, choose objects, and select language models for prepositional phrase training, rather than using pre-defined objects and locations as we currently do, similar to the work of \citet{tellex2011understanding} which presents a method to dynamically generate a probabilistic model of a natural language input and perform inferences relating to semantic meaning. This is similar to the work we will preform in semantic parsing, though we will do so incrementally rather than with an entire sentence and thus our work will need to modify these models.
+
+There are still a number of improvements to be made to our machine learning techniques. \citet{rudzicz03} give us a framework for parsing and understanding prepositional phrases. Similarly, \citet{liang2013learning} describe a method to create a semantic parser using question-answer pairs as data, rather than requiring annotated sentences, solving the same issue we approach of transforming natural language into semantic meaning. However, while these may be useful for generating a semantic model over entire sentences our technique will be different as we are currently only working with noun phrases, and apply additional information from the spatial model. 
 
 
 \section{Technical Approach}
 \newcommand{\true}{\top}
 \newcommand{\false}{\bot}
-Given a sequence of words $\lambda_1, \lambda_2, \ldots, \lambda_t$, we estimate the distribution of the objects the user is referring to as $\Gamma$. $\Gamma$ is a distribution over $\xi$, the set of all objects on the table. In essence, we evaluate:
+Given a sequence of words $\lambda_1, \lambda_2, \ldots, \lambda_t$, we estimate the distribution over the objects, of the objects that the user is referring to as $\Gamma$. $\Gamma$ is a distribution over $\xi$, the set of all objects on the table, and $\gamma$ refers to an arbitrary object in that distribution. In essence, we evaluate:
 \begin{align}
 	& \argmax_{\gamma \in \xi} \Pr(\Gamma = \gamma | \lambda_1, \lambda_2, \ldots, \lambda_t) \
 \end{align}
@@ -153,7 +168,7 @@ We assume these to be independent and factor the expression:
 \\ & = \Pr(\Phi = \true | \Gamma = \gamma, \Lambda_1, \Lambda_2, \ldots, \Lambda_k) 
 \intertext{Applying Bayes' rule:}
  & = \frac{\Pr(\Gamma = \gamma, \Lambda_1, \Lambda_2, \ldots, \Lambda_k | \Phi = \true)  \cdot \Pr(\Phi = \true)}{\Pr(\Gamma = \gamma, \Lambda_1, \Lambda_2, \ldots, \Lambda_k)}
-\intertext{We assume a uniform prior on both language and target object, and so eliminate the other terms. The algorithm will perform this calculation for all possible groundings $\gamma$, and account for the prior probabilities by normalizing the distribution.}
+\intertext{We assume a uniform prior on the correspondence variable, and so eliminate it. Since the algorithm performs this calculation for all possible groundings $\gamma$ and normalizes the distribution, we can rewrite the expression as:}
  & \propto \Pr(\Gamma = \gamma, \Lambda_1, \Lambda_2, \ldots, \Lambda_k | \Phi = \true)\label{eqn:assumeuniformprior}
 \intertext{We have assumed that the constitutents are independent, so we separate the terms. Each constituent has its own correspondence variable $\phi_i$ that is true if and only if that constituent correctly identifies the target object $\gamma$.}
  & = \prod_{i=1}^k \Pr(\Gamma = \gamma, \Lambda_i | \phi_i) \label{eqn:combinedistribs}
@@ -165,10 +180,7 @@ This factorization is done using a chunking algorithm, \citep{McCallumMALLET}. W
 
 The algorithm we present uses the factorization presented above but operates in a bottom-up manner. We represent the referring expression as a tree, updating it each time we receive the next word from the user. This representation allows us to perform computationally-intensive tasks only once and cache intermediate results, allowing us to produce intermediate results without having to recompute them.
 
-More precisely, we construct a semantic tree such that each leaf node in the tree is a noun-phrase that refers to some object. This tree is constructed by chunking the input using conditional random fields and then using deterministic transformations to turn the chunked input into a tree. We convert each of the leaf nodes into distributions over objects using a language model, and then finally evaluate this structure to obtain the final distribution. Here is a concrete example: 
-
-We attempt to locate the \textit{orange cube} using the following referring expression: ``The orange cube between the red thing and the yellow thing.'' A selection of \textit{red}, \textit{blue}, \textit{orange}, \textit{purple}, \textit{green}, and  \textit{yellow} cubes are arranged on a table, as shown in Figure~\ref{fig:worked_example}. The orange cube referred to in the above statement is pointed to by a red arrow in the figure. The process of estimating the object from this information is in Figure~\ref{fig:proc_flow}.
-
+More precisely, we construct a semantic tree such that each leaf node in the tree is a noun-phrase that refers to some object. This tree is constructed by chunking the input using conditional random fields and then using deterministic transformations to turn the chunked input into a tree. We convert each of the leaf nodes into distributions over objects using a language model, and then finally evaluate this structure to obtain the final distribution.
 
 \begin{figure*}[b]
   \centering
@@ -245,10 +257,10 @@ We begin with $\Pr(\Gamma = \gamma, \Lambda_i | \phi_i = \true)$. We use the str
 \intertext{We apply the law of total probability and introduce terms for each possible grounding.}
 \begin{split}
 & \sum_{\gamma_1 \in \xi} \cdots\sum_{\gamma_n \in \xi}
-\\ & \phantom{=}~\Pr(\Gamma = \gamma,  \Lambda_{j,P} \Gamma_{j,1} = \gamma_i, \ldots, \Gamma_{j,n} = \gamma_n| \phi_i = \true)
+\\ & \phantom{=}~\Pr(\Gamma = \gamma,  \Lambda_{j,P}, \Gamma_{j,1} = \gamma_i, \ldots, \Gamma_{j,n} = \gamma_n| \phi_i = \true)
 \\ & \phantom{=}~\cdot \Pr(\Lambda_{j,1}, \ldots, \Lambda_{j,n} | \Gamma_{j,1} = \gamma_1, \ldots, \Gamma_{j,n} = \gamma_n)
 \end{split}
-\intertext{We once again invoke the concept of correspondence variables, letting $\phi = \true$ if $\Gamma_{j,i} = \gamma_i$ corresponds to $\Lambda_{j,i}$. We further assume that each grounding is independent, which allows us to separate the grounding term:}
+\intertext{We once again invoke the concept of correspondence variables, letting $\phi_{j,i} = \true$ if $\Gamma_{j,i} = \gamma_i$ corresponds to $\Lambda_{j,i}$. We further assume that each grounding is independent, which allows us to separate the grounding term:}
 \begin{split}
 & = \sum_{\gamma_1 \in \xi} \cdots\sum_{\gamma_n \in \xi} \left( \prod_{i = 1}^n\Pr(\Lambda_{j,i}, \Gamma_{j,i} = \gamma_i | \phi_{j,i} = \true) \right)
 \\ & \phantom{=}~\Pr(\Gamma = \gamma,  \Lambda_{j,P} \Gamma_{j,1} = \gamma_i, \ldots, \Gamma_{j,n} = \gamma_n| \phi_i = \true)
@@ -473,7 +485,7 @@ For evaluation, the rate of correct identification is the number of trials in wh
 
 The percentage on the left of each preposition is the fraction of the test set that contains that preposition.
 
-To evaluate incremental performance, we report performance on the test set as a fraction of each sentence provided to the algorithm. Figure~\ref{fig:results_inc} reports the evaluation of the test set when our algorithm is run on it word-by-word. Note that, due to the variation in lengths of sentences, the charts are drawn by interpolating fraction of each sentence into bins from 0 to 1.
+To evaluate incremental performance, we report performance on the test set as a fraction of each sentence provided to the algorithm. Figure~\ref{fig:results_inc} reports the evaluation of the test set when our algorithm is run on it word-by-word. Note that, due to the variation in lengths of sentences, the charts are drawn by interpolating fraction of each sentence into bins from 0 to 1. Because of the structure of the algorithm, incremental evaluation converge to the batch-mode results after the final word in the sentence is presented.
 
 \begin{figure}[h]
   \centering
@@ -505,25 +517,6 @@ Figure~\ref{fig:interrater} shows the outcome of this when we restrict the test 
 
 From this we see that genuine confusion accounts for between 5-10 percentage points of the total error, which is substantial.
 
-\section{Related Work}
-
-Prepositional phrases have not been subject to as much computational analysis and study as noun- and verb-phrases. However, there are still a number of papers related to the topic. 
-
-There is an existing family of related work by \citet{tellex2011understanding}, \citet{UW_RSE_ICML2012}, and \citet{artzi2013weakly}, all of whom present modern models to process referring expressions. These models all operate on entire input sentences and are designed to parse general instructions and commands instead of only prepositional phrases. 
-\citet{tellex2011understanding} present the $G^3$ framework. We use several key ideas from this paper: in particular we implicitly assume the binary correspondence variable that their model maximizes. Our algorithm is inspired in part by the algorithm they present.
-\citet{UW_RSE_ICML2012} present a state-of-the-art process to learn models for a semantic parser and word-classifier alignment. Our approach is substantially different from Matuszek~et.~al. since we do not separate perceptual features from the language model of each object. Also, in the learning phase of their algorithm, they calculate the marginal probability of a particular grounding and a particular word by performing a beam search over all possible parses. We assume instead that each node in the parse is independent of its sibling nodes, which allows us to use dynamic programming to incrementally build the distribution.
-\citet{artzi2013weakly} train Combinatory Categorial Grammars (CCG) with ambiguous validation functions to parse instructions, including spatial relations. While this approach is more flexible and likely performs better on entirely novel sentences, we deliberately choose a simpler model that lends itself to a dynamic programming approach.
-
-\citet{fang2015embodied} present a model to collaboratively generate a referring expression, incorporating feedback from the human subject to generate additional terms. The paper focuses on the generation of referring expressions and the use of gestural feedback, and so is of limited use in the context of this paper.
-
-In addition to these, we rely on previous work about prepositional phrases:
-
-\citet{collins95} present a model for disambiguating prepositional phrase attachments. They deal with Noun-Phrases and Verb-Phrases, but their statistical technique may be useful. This concept is also explored by \citet{ratna98}, and \citet{brill94}, each of whom suggest alternative models. Additionally, \citet{merlo97} explore disambiguating multiple prepositional phrases, rather than a single phrase between multiple targets, both of which are relevant to future work. However, our current model uses sentences focused around a single noun phrase, unlike the general English corpus used in this paper. Additionally, the incremental nature of our parsing requires an alternative framework, and as such not all techniques suggested in these papers can be used.
-
-Another issue we face is the challenge of identifying objects and mapping them to probability distributions via language model. To deal with this, \citet{barbu13} present a model for mapping language to object models in video data and \citet{UW_RSE_ICML2012} describe an approach to the problem of simultaneously observing and extracting representations of a perceived world. These approaches can be adapted to help design features, choose objects, and select language models for prepositional phrase training, rather than using pre-defined objects and locations as we currently do, similar to the work of \citet{tellex2011understanding} which presents a method to dynamically generate a probabilistic model of a natural language input and perform inferences relating to semantic meaning. This is similar to the work we will preform in semantic parsing, though we will do so incrementally rather than with an entire sentence and thus our work will need to modify these models.
-
-There are still a number of improvements to be made to our machine learning techniques. \citet{rudzicz03} give us a framework for parsing and understanding prepositional phrases. Similarly, \citet{liang2013learning} describe a method to create a semantic parser using question-answer pairs as data, rather than requiring annotated sentences, solving the same issue we approach of transforming natural language into semantic meaning. However, while these may be useful for generating a semantic model over entire sentences our technique will be different as we are currently only working with noun phrases, and apply additional information from the spatial model. 
-
 \section{Conclusion}
 In this paper we have presented an incremental referring expression parser that can process prepositional phrases. The incremental nature of the parser is the key contribution: state-of-the-art parsers all operate on complete referring expressions. 
 
@@ -535,8 +528,6 @@ From an algorithmic development perspective, a natural extension of this algorit
 This thesis project is the culmination of work done from Fall 2014 to present. Some work was previously completed in collaboration with undergraduate student Zachary Loery.
 
 This project was completed in the H2R laboratory in the Brown computer science department, with Prof. Stefanie Tellex as advisor.
-
-\vfill\break
 
 \printbibliography
 
