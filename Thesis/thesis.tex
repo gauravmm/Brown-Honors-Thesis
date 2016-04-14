@@ -65,7 +65,7 @@
 
 %opening
 \title{Incrementally Identifying Objects from Referring Expressions using Spatial Object Models}
-\author{Gaurav Manek\\(Advisor: Prof. Stefanie Tellex)}
+\author{Gaurav Manek\\Advisor: Prof. Stefanie Tellex\\Reader: Prof. Eugene Charniak}
 
 \begin{document}
 
@@ -151,23 +151,16 @@ Given a sequence of words $\lambda_1, \lambda_2, \ldots, \lambda_t$, we estimate
 	& \argmax_{\gamma \in \xi} \Pr(\Gamma = \gamma | \lambda_1, \lambda_2, \ldots, \lambda_t) \
 \end{align}
 
-We reformulate the problem with correspondence variable $\Phi$, which is true if and only if the object $\gamma$ is correctly identified by $(\lambda_1, \lambda_2, \ldots, \lambda_t)$.  \citep{tellex2011understanding}
+We assume that we can factor the sequence of words into separate independent constituents ($\Lambda_1, \Lambda_2, \ldots, \Lambda_k$), according to the compositional structure of language \citep{heim1998semantics}, each of which corresponds to either a grounding (a description of the object, such as ``the orange cube'') or a prepositional phrase (e.g. ``between the \ldots''). We assume these to be independent and factor the expression:
 \begin{align}
-	& \argmax_{\gamma \in \xi} \Pr(\Phi = \true | \Gamma = \gamma, (\lambda_1, \lambda_2, \ldots, \lambda_t))
-\end{align}
-
-We then assume that we can factor the sequence of words into separate independent constituents ($\Lambda_1, \Lambda_2, \ldots, \Lambda_k$), according to the compositional structure of language \citep{heim1998semantics}, each of which corresponds to either a grounding (a description of the object, such as ``the orange cube'') or a prepositional phrase (e.g. ``between the \ldots''). We assu
-
-We assume these to be independent and factor the expression:
-\begin{align}
-   &\Pr(\Phi = \true | \Gamma = \gamma, \lambda_1, \lambda_2, \ldots, \lambda_t)
-\\ & = \Pr(\Phi = \true | \Gamma = \gamma, \Lambda_1, \Lambda_2, \ldots, \Lambda_k) 
+   &\Pr(\Gamma = \gamma | \lambda_1, \lambda_2, \ldots, \lambda_t)
+  = \Pr(\Gamma = \gamma | \Lambda_1, \Lambda_2, \ldots, \Lambda_k) 
 \intertext{Applying Bayes' rule:}
- & = \frac{\Pr(\Gamma = \gamma, \Lambda_1, \Lambda_2, \ldots, \Lambda_k | \Phi = \true)  \cdot \Pr(\Phi = \true)}{\Pr(\Gamma = \gamma, \Lambda_1, \Lambda_2, \ldots, \Lambda_k)}
-\intertext{We assume a uniform prior on the correspondence variable, and so eliminate it. Since the algorithm performs this calculation for all possible groundings $\gamma$ and normalizes the distribution, we can rewrite the expression as:}
- & \propto \Pr(\Gamma = \gamma, \Lambda_1, \Lambda_2, \ldots, \Lambda_k | \Phi = \true)\label{eqn:assumeuniformprior}
-\intertext{We have assumed that the constitutents are independent, so we separate the terms. Each constituent has its own correspondence variable $\phi_i$ that is true if and only if that constituent correctly identifies the target object $\gamma$.}
- & = \prod_{i=1}^k \Pr(\Gamma = \gamma, \Lambda_i | \phi_i) \label{eqn:combinedistribs}
+ & = \frac{\Pr(\Lambda_1, \Lambda_2, \ldots, \Lambda_k | \Gamma = \gamma)  \cdot \Pr(\Gamma = \gamma)}{\Pr(\Lambda_1, \Lambda_2, \ldots, \Lambda_k)}
+\intertext{We assume a uniform prior on the object being selected, and so eliminate it. Since the algorithm performs this calculation for all possible groundings $\gamma$ and normalizes the distribution, we can ignore the probability in the denominator in this step. We rewrite the expression as:}
+ & \propto \Pr(\Lambda_1, \Lambda_2, \ldots, \Lambda_k | \Gamma = \gamma)\label{eqn:assumeuniformprior}
+\intertext{We have assumed that the constitutents are independent, so we separate the terms and find the product:}
+ & = \prod_{i=1}^k \Pr(\Lambda_i | \Gamma = \gamma) \label{eqn:combinedistribs}
 \end{align}
 
 This factorization is done using a chunking algorithm, \citep{McCallumMALLET}. We assume that the chunkings given here are certain, and so eliminate the probability term associated with that. For speed, we approximate with a chunking which has been shown to give good results in practice.
@@ -180,20 +173,19 @@ More precisely, we construct a semantic tree such that each leaf node in the tre
 
 \begin{figure*}[b]
   \centering
-  \small
-  \setlength{\qtreepadding}{1pt}
+  \setlength{\qtreepadding}{3pt}
 \begin{tabular}{ccccccc}\hline\hline
-\Tree [.{$\Pr(\Lambda, \Gamma | \Phi)$} \emph{The orange cube} [.{\emph{between}} \emph{the red} \emph{the yellow} ]] \vspace{0.12in} &
+\Tree [.{$\Pr(\Lambda|\Gamma)$} \emph{The orange cube} [.{\emph{between}} \emph{the red} \emph{the yellow} ]] \vspace{0.12in} &
 \pbox{0.2in}{\vspace{0.5in}
 $\Rightarrow$} &
-\Tree [.{$\Pr(\Lambda, \Gamma | \Phi)$} {$\Pr(\Lambda_1, \Gamma | \phi_1)$} [.{Preposition $p \in P$} {$\Pr(\Lambda_{2,1}, \Gamma | \phi_{2,1})$} {$\Pr(\Lambda_{2,2}, \Gamma | \phi_{2,2})$} ]] &
+\Tree [.{$\Pr(\Lambda|\Gamma)$} {$\Pr(\Lambda_1 | \Gamma)$} [.{Preposition $p \in P$} {$\Pr(\Lambda_{2,1} | \Gamma)$} {$\Pr(\Lambda_{2,2} | \Gamma)$} ]] &
 \pbox{0.2in}{\vspace{0.5in}
 $\Rightarrow$} &
-\Tree [.{$\Pr(\Lambda, \Gamma | \Phi)$} {$\Pr(\Lambda_{1}, \Gamma|\phi_1)$} {$\Pr(\Lambda_{2}, \Gamma|\phi_2)$} ]
+\Tree [.{$\Pr(\Lambda|\Gamma)$} {$\Pr(\Lambda_{1} | \Gamma)$} {$\Pr(\Lambda_{2} | \Gamma)$} ]
 &
 \pbox{0.2in}{\vspace{0.5in}
 $\Rightarrow$} & 
-\Tree [.{$\Pr(\Lambda, \Gamma | \Phi)$} ]
+\Tree [.{$\Pr(\Lambda|\Gamma)$} ]
 \\ \hline
 \multicolumn{2}{r}{\textbf{(Case 0)}} & \multicolumn{2}{r}{\textbf{(Case 1)}} & \multicolumn{2}{r}{\textbf{(Case 2)}}
 \end{tabular}
@@ -217,8 +209,8 @@ Once we have a semantic tree, we can simplify the tree in a bottom-up manner to 
 
 Each grounding in the tree is modeled by a distribution that is obtained from the language model. 
 \begin{align}
-   \Pr(\Gamma = \gamma, \Lambda_i | \phi_i = \true)
-& = \prod_{\lambda \in \Lambda_j} \left( \frac{Q(\gamma, \lambda) + \alpha}{\sum_{\omega} Q(\omega, \lambda) + \alpha \cdot |\xi|} \right) \label{eqn:unigram_model}
+   \Pr(\Lambda_i | \Gamma = \gamma)
+& = \prod_{\lambda \in \Lambda_i} \left( \frac{Q(\gamma, \lambda) + \alpha}{\sum_{\omega} Q(\omega, \lambda) + \alpha \cdot |\xi|} \right) \label{eqn:unigram_model}
 \end{align}
 
 The language model used is a unigram language model, where each word $\lambda$ refers to object $\gamma$ with some joint score $Q(\gamma, \lambda)$. In our model, we set $Q(\gamma, \lambda)$ to be the number of times that $\lambda$ was used to describe $\gamma$ in our training set. The distribution of simple noun phrase $\Lambda_j$ referring to object $\gamma$ is given by Equation~\ref{eqn:unigram_model}. We use add-alpha smoothing arbitrarily setting $\alpha \approx 5\%$. $\xi$ is the set of all objects, and $|\xi|$ is the number of objects.
@@ -247,23 +239,28 @@ $\Rightarrow$} &
   \label{fig:incremental_caching}
 \end{figure*}
 
-We begin with $\Pr(\Gamma = \gamma, \Lambda_i | \phi_i = \true)$. We use the structure of prepositional phrases to factor $\Lambda_j$ into a preposition and groundings. $\Lambda_{j,P}$ refers to the subset of $\Lambda_{j}$ which describes the preposition (e.g. the word ``between'' or ``near''), and corresponds to $P$. Each $\Lambda_{j,i}$ refers to the subset of $\Lambda_{j}$ which describes the $i^\text{th}$ object that the preposition references (i.e. the object to which the target is ``near'') and corresponds to the distribution over all objects $\Gamma_{j,i}$. Let $n$ be the number of such groundings.
+We begin with $\Pr(\Lambda_i | \Gamma = \gamma)$. We use the structure of prepositional phrases to factor $\Lambda_j$ into a preposition and groundings. $\Lambda_{j,P}$ refers to the subset of $\Lambda_{j}$ which describes the preposition (e.g. the word ``between'' or ``near''), and corresponds to $P$. Each $\Lambda_{j,i}$ refers to the subset of $\Lambda_{j}$ which describes the $i^\text{th}$ object that the preposition references (i.e. the object to which the target is ``near'') and corresponds to the distribution over all objects $\Gamma_{j,i}$. Let $n$ be the number of such groundings.
 \begin{align}
- & = \Pr(\Gamma = \gamma, \Lambda_{j,P},\Lambda_{j,1}, \ldots, \Lambda_{j,n}| \phi_i = \true)
+ & = \Pr(\Lambda_{j,P},\Lambda_{j,1}, \ldots, \Lambda_{j,n}| \Gamma = \gamma)
 \intertext{We apply the law of total probability and introduce terms for each possible grounding.}
 \begin{split}
 & \sum_{\gamma_1 \in \xi} \cdots\sum_{\gamma_n \in \xi}
-\\ & \phantom{=}~\Pr(\Gamma = \gamma,  \Lambda_{j,P}, \Gamma_{j,1} = \gamma_i, \ldots, \Gamma_{j,n} = \gamma_n| \phi_i = \true)
+\\ & \phantom{=}~\Pr(\Lambda_{j,P}, \Gamma_{j,1} = \gamma_i, \ldots, \Gamma_{j,n} = \gamma_n| \Gamma = \gamma)
 \\ & \phantom{=}~\cdot \Pr(\Lambda_{j,1}, \ldots, \Lambda_{j,n} | \Gamma_{j,1} = \gamma_1, \ldots, \Gamma_{j,n} = \gamma_n)
 \end{split}
-\intertext{We once again invoke the concept of correspondence variables, letting $\phi_{j,i} = \true$ if $\Gamma_{j,i} = \gamma_i$ corresponds to $\Lambda_{j,i}$. We further assume that each grounding is independent, which allows us to separate the grounding term:}
+\intertext{We assume that each grounding is independent, which allows us to separate the grounding term:}
 \begin{split}
-& = \sum_{\gamma_1 \in \xi} \cdots\sum_{\gamma_n \in \xi} \left( \prod_{i = 1}^n\Pr(\Lambda_{j,i}, \Gamma_{j,i} = \gamma_i | \phi_{j,i} = \true) \right)
-\\ & \phantom{=}~\Pr(\Gamma = \gamma,  \Lambda_{j,P} \Gamma_{j,1} = \gamma_i, \ldots, \Gamma_{j,n} = \gamma_n| \phi_i = \true)
+& = \sum_{\gamma_1 \in \xi} \cdots\sum_{\gamma_n \in \xi} \left( \prod_{i = 1}^n\Pr(\Lambda_{j,i} | \Gamma_{j,i} = \gamma_i) \right)
+\\ & \phantom{=}~\Pr(\Lambda_{j,P}, \Gamma_{j,1} = \gamma_i, \ldots, \Gamma_{j,n} = \gamma_n| \Gamma = \gamma)
 \end{split}
-\intertext{The last term relates all the groundings and the target object with the preposition used. We parametrize it with feature-vector function $f$, weights $\theta_p$, logistic function $S$, and some normalization factor $z$. $\theta_p$ is calculated by performing logistic regression, with the feature-vector functions $f$ detailed in \ref{sec:featurevectors}.}
+\intertext{We multiply the probability by the prior $\Pr(\Gamma = \gamma)$, which is assumed to be uniform. This allows us to reformulate the problem as finding the joint probability over all groundings and $\gamma$.}
 \begin{split}
-& = \sum_{\gamma_1 \in \xi} \cdots\sum_{\gamma_n \in \xi} \left( \prod_{i = 1}^n\Pr(\Lambda_{j,i}, \Gamma_{j,i} = \gamma_i | \phi_{j,i} = \true) \right)
+& \propto \sum_{\gamma_1 \in \xi} \cdots\sum_{\gamma_n \in \xi} \left( \prod_{i = 1}^n\Pr(\Lambda_{j,i} | \Gamma_{j,i} = \gamma_i) \right)
+\\ & \phantom{=}~\Pr(\Lambda_{j,P}, \Gamma_{j,1} = \gamma_i, \ldots, \Gamma_{j,n} = \gamma_n, \Gamma = \gamma)
+\end{split}
+\intertext{The last term relates the groundings, the target object, and the preposition used to the correspondence variable. We parametrize this relationship with feature-vector function $f$, weights $\theta_p$, logistic function $S$, and some normalization factor $z$. We assume we can directly obtain $p$ from $\Lambda_{j, P}$ using a lookup table. $\theta_p$ is calculated by performing logistic regression, with the feature-vector functions $f$ detailed in \ref{sec:featurevectors}.}
+\begin{split}
+& = \sum_{\gamma_1 \in \xi} \cdots\sum_{\gamma_n \in \xi} \left( \prod_{i = 1}^n\Pr(\Lambda_{j,i} | \Gamma_{j,i} = \gamma_i) \right)
 \\ & \phantom{=}~\text{S}\left( \frac{f(\gamma, \gamma_1, \ldots) \cdot \theta_p}{z} \right)
 \end{split}
 \end{align}
@@ -273,10 +270,10 @@ We observe that our na\"ive implementation takes time to the order of $\mathcal{
 
 \textbf{\textsc{Case 3}} Combining multiple distributions.
 
-In Figure~\ref{fig:bottom_up_eval}, we simplify groundings $Pr(\Lambda_1, \Gamma = \gamma | \phi_1)$ and derived distribution $Pr(\Lambda_2, \Gamma = \gamma | | \phi_2)$ to get $\Gamma$, our estimated distribution. As established in the initial factorization, we simply take the inner product of all distributions to find the overall distribution. Equation~\ref{eqn:combinedistribs} is reproduced here:
+In Figure~\ref{fig:bottom_up_eval}, we simplify groundings $Pr(\Lambda_1 | \Gamma = \gamma)$ and derived distribution $Pr(\Lambda_2 | \Gamma = \gamma)$ to get $\Gamma$, our estimated distribution. As established in the initial factorization, we simply take the inner product of all distributions to find the overall distribution. Equation~\ref{eqn:combinedistribs} is reproduced here:
 \begin{align*}
-& \Pr(\Gamma = \gamma | \lambda_1, \lambda_2, \ldots, \lambda_t) = 
-\prod_{i=1}^k \Pr(\Gamma = \gamma, \Lambda_i | \phi_i)\end{align*}
+& \Pr(\Gamma = \gamma | \lambda_1, \lambda_2, \ldots, \lambda_t) = \prod_{i=1}^k \Pr(\Lambda_i | \Gamma = \gamma)
+\end{align*}
 
 The na\"ive implementation also takes time to the order of $\mathcal{O}(|\xi|^{n+1})$, where $|\xi|$ is the number of objects and $n$ is the number of groundings for which the marginal distribution must be taken.
 
