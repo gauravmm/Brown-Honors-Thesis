@@ -37,11 +37,11 @@ def run():
     rv = load();
 
     #computeBatchTable(rv);
-    #plotNCorrectnessByFraction(rv, 5);
+    plotNCorrectnessByFraction(rv, 5);
     #plotNCorrectnessByWord(rv, 5);
     #computeCorrectnessInterrater(rv);
     
-    runExamineSpecific();
+    #runExamineSpecific();
 
     # scatterEntropy(rv);
     #plotNCorrectnessByWord(rv, 5);
@@ -262,6 +262,9 @@ def plotNCorrectnessByFraction(rv, numtot):
                 correct[k,:] += np.interp(intpX, t_x, t_corr);
     
     #print correct;
+    print correct[0, 49]/numtot;
+    print correct[0, 79]/numtot;
+    print correct[0, 89]/numtot;
     
     plt.figure(figsize=(6, 3), dpi=300);
     plt.hold("on");
