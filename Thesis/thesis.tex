@@ -151,25 +151,6 @@ Given a sequence of words $\lambda_1, \lambda_2, \ldots, \lambda_t$, we estimate
 	& \argmax_{\gamma \in \xi} \Pr(\Gamma = \gamma | \lambda_1, \lambda_2, \ldots, \lambda_t) \
 \end{align}
 
-We assume that we can factor the sequence of words into separate independent constituents ($\Lambda_1, \Lambda_2, \ldots, \Lambda_k$), according to the compositional structure of language \citep{heim1998semantics}, each of which corresponds to either a grounding (a description of the object, such as ``the orange cube'') or a prepositional phrase (e.g. ``between the \ldots''). We assume these to be independent and factor the expression:
-\begin{align}
-   &\Pr(\Gamma = \gamma | \lambda_1, \lambda_2, \ldots, \lambda_t)
-  = \Pr(\Gamma = \gamma | \Lambda_1, \Lambda_2, \ldots, \Lambda_k) 
-\intertext{Applying Bayes' rule:}
- & = \frac{\Pr(\Lambda_1, \Lambda_2, \ldots, \Lambda_k | \Gamma = \gamma)  \cdot \Pr(\Gamma = \gamma)}{\Pr(\Lambda_1, \Lambda_2, \ldots, \Lambda_k)}
-\intertext{We assume a uniform prior on the object being selected, and so eliminate it. Since the algorithm performs this calculation for all possible groundings $\gamma$ and normalizes the distribution, we can ignore the probability in the denominator in this step. We rewrite the expression as:}
- & \propto \Pr(\Lambda_1, \Lambda_2, \ldots, \Lambda_k | \Gamma = \gamma)\label{eqn:assumeuniformprior}
-\intertext{We have assumed that the constitutents are independent, so we separate the terms and find the product:}
- & = \prod_{i=1}^k \Pr(\Lambda_i | \Gamma = \gamma) \label{eqn:combinedistribs}
-\end{align}
-
-This factorization is done using a chunking algorithm, \citep{McCallumMALLET}. We assume that the chunkings given here are certain, and so eliminate the probability term associated with that. For speed, we approximate with a chunking which has been shown to give good results in practice.
-
-\subsection{Incremental Parsing Algorithm}
-
-The algorithm we present uses the factorization presented above but operates in a bottom-up manner. We represent the referring expression as a tree, updating it each time we receive the next word from the user. This representation allows us to perform computationally-intensive tasks only once and cache intermediate results, allowing us to produce intermediate results without having to recompute them.
-
-More precisely, we construct a semantic tree such that each leaf node in the tree is a noun-phrase that refers to some object. This tree is constructed by chunking the input using conditional random fields and then using deterministic transformations to turn the chunked input into a tree. We convert each of the leaf nodes into distributions over objects using a language model, and then finally evaluate this structure to obtain the final distribution.
 
 \begin{figure*}[b]
   \centering
@@ -193,13 +174,19 @@ $\Rightarrow$} &
   \label{fig:bottom_up_eval}
 \end{figure*}
 
+We assume that we can factor the sequence of words into separate independent constituents ($\Lambda_1, \Lambda_2, \ldots, \Lambda_k$), according to the compositional structure of language \citep{heim1998semantics}, each of which corresponds to either a grounding (a description of the object, such as ``the orange cube'') or a prepositional phrase (e.g. ``between the \ldots''). We assume these to be independent and factor the expression:
+\begin{align}
+   &\Pr(\Gamma = \gamma | \lambda_1, \lambda_2, \ldots, \lambda_t)
+  = \Pr(\Gamma = \gamma | \Lambda_1, \Lambda_2, \ldots, \Lambda_k) 
+\intertext{Applying Bayes' rule:}
+ & = \frac{\Pr(\Lambda_1, \Lambda_2, \ldots, \Lambda_k | \Gamma = \gamma)  \cdot \Pr(\Gamma = \gamma)}{\Pr(\Lambda_1, \Lambda_2, \ldots, \Lambda_k)}
+\intertext{We assume a uniform prior on the object being selected, and so eliminate it. Since the algorithm performs this calculation for all possible groundings $\gamma$ and normalizes the distribution, we can ignore the probability in the denominator in this step. We rewrite the expression as:}
+ & \propto \Pr(\Lambda_1, \Lambda_2, \ldots, \Lambda_k | \Gamma = \gamma)\label{eqn:assumeuniformprior}
+\intertext{We have assumed that the constitutents are independent, so we separate the terms and find the product:}
+ & = \prod_{i=1}^k \Pr(\Lambda_i | \Gamma = \gamma) \label{eqn:combinedistribs}
+\end{align}
 
-\subsection{Chunking and Semantic Tree construction}
-\label{sec:tagging}
-
-The algorithm's input is a sequence of words which needs to be transformed to a semantic tree for use with later stages. The first stage in this transformation is to assign a tag to each word that is similar to parts-of-speech tags. Instead of using the full set of English parts of speech, we use a reduced set developed for this  application.
-
-We model the relationship between words and tags as a conditional random field, where the tag for any particular word depends on the neighboring words. We directly estimate the distribution of tags using the existing library Mallet, developed by \citet{McCallumMALLET}. The transformation from the tagged sequence to the semantic tree is entirely deterministic, as the tags are tailored to the specific form of the queries in the corpus.
+This factorization is done using a chunking algorithm, \citep{McCallumMALLET}. We assume that the chunkings given here are certain, and so eliminate the probability term associated with that. For speed, we approximate with a chunking which has been shown to give good results in practice.
 
 \subsection{Bottom-up Evaluation}
 \label{sec:bottomupeval}
@@ -221,30 +208,12 @@ Our implementation will be able to perform a lookup in $\mathcal{O}(|\Lambda_j|)
 
 We have preposition $p \in P = $ \{`near', `left', `right', `front', `behind', `between'\}. We discuss the selection of these in Section~\ref{sec:prepselect}.
 
-\begin{figure*}[!b]
-  \small
-  \centering
-\begin{tabular}{ccccc}\hline\hline
-\Tree [.$\circ$ [.\fbox{cache miss} [.\fbox{cache miss} \emph{The orange cube} ] ]] &
-\pbox{0.2in}{\vspace{0.5in}
-$\Rightarrow$} &
-\Tree [.$\circ$ [.\fbox{cache miss} [.\fbox{cache hit} \emph{The orange cube} ] [.\fbox{cache miss} [.{\emph{between}} [.\fbox{cache miss} \emph{the red} ]]]]] &
-\pbox{0.2in}{\vspace{0.5in}
-$\Rightarrow$} &
-\Tree [.$\circ$ [.\fbox{cache miss} [.\fbox{cache hit} \emph{The orange cube} ] [.\fbox{cache miss} [.{\emph{between}} [.\fbox{cache hit} \emph{the red} ] [.\fbox{cache miss} \emph{the yellow} ]]]]]
-\\ \hline
-``The orange cube & & \ldots between the red  & & \ldots and the yellow.''
-\end{tabular}
-\caption{Cache behavior as words are added.}
-  \label{fig:incremental_caching}
-\end{figure*}
-
-We begin with $\Pr(\Lambda_i | \Gamma = \gamma)$. We use the structure of prepositional phrases to factor $\Lambda_j$ into a preposition and groundings. $\Lambda_{j,P}$ refers to the subset of $\Lambda_{j}$ which describes the preposition (e.g. the word ``between'' or ``near''), and corresponds to $P$. Each $\Lambda_{j,i}$ refers to the subset of $\Lambda_{j}$ which describes the $i^\text{th}$ object that the preposition references (i.e. the object to which the target is ``near'') and corresponds to the distribution over all objects $\Gamma_{j,i}$. Let $n$ be the number of such groundings.
+We begin with $\Pr(\Lambda_j | \Gamma = \gamma)$. We use the structure of prepositional phrases to factor $\Lambda_j$ into a preposition and groundings. $\Lambda_{j,P}$ refers to the subset of $\Lambda_{j}$ which describes the preposition (e.g. the word ``between'' or ``near''), and corresponds to $P$. Each $\Lambda_{j,i}$ refers to the subset of $\Lambda_{j}$ which describes the $i^\text{th}$ object that the preposition references (i.e. the object to which the target is ``near'') and corresponds to the distribution over all objects $\Gamma_{j,i}$. Let $n$ be the number of such groundings.
 \begin{align}
- & = \Pr(\Lambda_{j,P},\Lambda_{j,1}, \ldots, \Lambda_{j,n}| \Gamma = \gamma)
+ &\Pr(\Lambda_j | \Gamma = \gamma) = \Pr(\Lambda_{j,P},\Lambda_{j,1}, \ldots, \Lambda_{j,n}| \Gamma = \gamma)
 \intertext{We apply the law of total probability and introduce terms for each possible grounding.}
 \begin{split}
-& \sum_{\gamma_1 \in \xi} \cdots\sum_{\gamma_n \in \xi}
+& = \sum_{\gamma_1 \in \xi} \cdots\sum_{\gamma_n \in \xi}
 \\ & \phantom{=}~\Pr(\Lambda_{j,P}, \Gamma_{j,1} = \gamma_i, \ldots, \Gamma_{j,n} = \gamma_n| \Gamma = \gamma)
 \\ & \phantom{=}~\cdot \Pr(\Lambda_{j,1}, \ldots, \Lambda_{j,n} | \Gamma_{j,1} = \gamma_1, \ldots, \Gamma_{j,n} = \gamma_n)
 \end{split}
@@ -276,6 +245,39 @@ In Figure~\ref{fig:bottom_up_eval}, we simplify groundings $Pr(\Lambda_1 | \Gamm
 \end{align*}
 
 The na\"ive implementation also takes time to the order of $\mathcal{O}(|\xi|^{n+1})$, where $|\xi|$ is the number of objects and $n$ is the number of groundings for which the marginal distribution must be taken.
+
+
+\subsection{Incremental Parsing Algorithm}
+
+The algorithm we present uses the factorization presented above but operates in a bottom-up manner. We represent the referring expression as a tree, updating it each time we receive the next word from the user. This representation allows us to perform computationally-intensive tasks only once and cache intermediate results, allowing us to produce intermediate results without having to recompute them.
+
+More precisely, we construct a semantic tree such that each leaf node in the tree is a noun-phrase that refers to some object. This tree is constructed by chunking the input using conditional random fields and then using deterministic transformations to turn the chunked input into a tree. We convert each of the leaf nodes into distributions over objects using a language model, and then finally evaluate this structure to obtain the final distribution.
+
+\begin{figure*}[!b]
+  \small
+  \centering
+\begin{tabular}{ccccc}\hline\hline
+\Tree [.$\circ$ [.\fbox{cache miss} [.\fbox{cache miss} \emph{The orange cube} ] ]] &
+\pbox{0.2in}{\vspace{0.5in}
+$\Rightarrow$} &
+\Tree [.$\circ$ [.\fbox{cache miss} [.\fbox{cache hit} \emph{The orange cube} ] [.\fbox{cache miss} [.{\emph{between}} [.\fbox{cache miss} \emph{the red} ]]]]] &
+\pbox{0.2in}{\vspace{0.5in}
+$\Rightarrow$} &
+\Tree [.$\circ$ [.\fbox{cache miss} [.\fbox{cache hit} \emph{The orange cube} ] [.\fbox{cache miss} [.{\emph{between}} [.\fbox{cache hit} \emph{the red} ] [.\fbox{cache miss} \emph{the yellow} ]]]]]
+\\ \hline
+``The orange cube & & \ldots between the red  & & \ldots and the yellow.''
+\end{tabular}
+\caption{Cache behavior as words are added.}
+  \label{fig:incremental_caching}
+\end{figure*}
+
+
+\subsection{Chunking and Semantic Tree construction}
+\label{sec:tagging}
+
+The algorithm's input is a sequence of words which needs to be transformed to a semantic tree for use with later stages. The first stage in this transformation is to assign a tag to each word that is similar to parts-of-speech tags. Instead of using the full set of English parts of speech, we use a reduced set developed for this  application.
+
+We model the relationship between words and tags as a conditional random field, where the tag for any particular word depends on the neighboring words. We directly estimate the distribution of tags using the existing library Mallet, developed by \citet{McCallumMALLET}. The transformation from the tagged sequence to the semantic tree is entirely deterministic, as the tags are tailored to the specific form of the queries in the corpus.
 
 \subsection{Preposition Choice}
 \label{sec:prepselect}
