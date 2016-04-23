@@ -6,7 +6,7 @@ import numpy as np;
 execfile("./params.py");
 
 
-fn = "test-output-a.pkl";
+fn = "test-output-c.pkl";
 def load():
     try:
         with open(fn, 'r') as f:
@@ -36,8 +36,8 @@ pos = lambda dist, item: sum(1 for k,v in dist.iteritems() if k[1:7] == "orange_
 def run():
     rv = load();
 
-    #computeBatchTable(rv);
-    plotNCorrectnessByFraction(rv, 5);
+    computeBatchTable(rv);
+    #plotNCorrectnessByFraction(rv, 5);
     #plotNCorrectnessByWord(rv, 5);
     #computeCorrectnessInterrater(rv);
     

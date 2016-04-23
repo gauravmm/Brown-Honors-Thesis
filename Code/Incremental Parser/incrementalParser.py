@@ -1,4 +1,4 @@
-import os;
+import os, socket;
 from models import *;
 
 execfile("./params.py");
@@ -7,6 +7,8 @@ execfile("./unigram.py");
 splitpart = "test";
 #JAVAPATH = "C:\\Program Files\\Java\\jre1.8.0_45\\bin\\java.exe";
 JAVAPATH = "java";
+
+PORT = 6534;
 
 UNK_OBJ = "**UNK_OBJ**";
 NEXT_PRP_OBJ = "**NEXT_PRP_OBJ**";
@@ -33,7 +35,12 @@ class IncrementalParser(object):
         self.mod = model_logistic();
         #mod = model_normal();
         self.mod.load();
+        
+        # Connect the socket:
+        self.socket = socket.create_connection(("localhost", PORT));
 
+    def close(self):
+        self.socket.close();
 
     def next(self, w):
         self.inp.append(w);
@@ -178,29 +185,22 @@ class IncrementalParser(object):
         
     def newTags(self):
         # Pass self.inp to mallet, get the answers back.
-        # java -cp "mallet-deps.jar;class" cc.mallet.fst.SimpleTagger --model-file crf-model-1 mallet_test.txt
-        d = os.getcwd();
+        # Connect to MalletService over the network.
+        
+        # Send all
+        out = "";        
         try:
-            os.chdir('mallet/');
-            
-            with open("inp.txt", 'w') as f:
-                f.write("\n".join(self.inp + [""]));
-                    
-            out = "";        
-            try:
-                cmd = [JAVAPATH, "-cp", "\"mallet-deps.jar;class\"", "cc.mallet.fst.SimpleTagger", "--model-file", "crf-model-1", "inp.txt", ">", "out.txt"];
-                os.system(" ".join(cmd));            
-                
-                with open("out.txt", 'r') as f:
-                    out = f.readlines();
-                    out = [o.strip() for o in out[0:-1]];
-            except:
-                print "Call to Mallet failed";
-                raise;
-                
-            return out;
-        finally:
-            os.chdir(d);
+            s = " ".join(self.inp) + "\n";
+            self.socket.sendall(s);
+            while "\n" not in out:
+                out += self.socket.recv(512);
+            out = out[0:out.find("\n")];
+        except:
+            print "Call to Mallet failed";
+            raise;
+        
+        out = out.split(" ");
+        return out;
         
 
 def run():
@@ -215,13 +215,12 @@ def run():
     sc = scenes[scene_name];
     
     ip = IncrementalParser(sc);
-    
-    
 
     for w in inp:
         dist = ip.next(w);
         print w + "\t" + ", ".join(str(ob) + ": " + str(dist["orange_" + str(ob)]) for ob in range(1, 8) if "orange_" + str(ob) in sc);
     
+    ip.close();
     
 
 if __name__ == "__main__":

@@ -1,10 +1,5 @@
-VB 
-VB 
 SNP 
 SNP 
 SNP 
-REL 
-REL 
-REL 
-REL 
+SNP 
 
