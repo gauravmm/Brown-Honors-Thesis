@@ -42,6 +42,23 @@ class IncrementalParser(object):
     def close(self):
         self.socket.close();
 
+    def setTo(self, s):
+        self.inp = s;
+        self.tags = self.newTags();
+               
+        # Repeat the tree building:        
+        nodes = get_nodes(self.tags, self.inp); 
+        nodes = [n for n in nodes if node_filter(n)];
+        struc = self.nodesToStructure(nodes);
+        
+        
+        struc['tgt'] = self.getSNPDist(struc['tgt']); 
+        struc['qual'] = [self.getPRPDist(typ, snp) for (typ, snp) in struc['qual'] if typ in preps];
+
+        self.dist = self.mergeDist([struc['tgt']] + struc['qual']);
+        return self.dist;
+
+
     def next(self, w):
         self.inp.append(w);
         self.tags = self.newTags();

@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Incremental Parser - Testing Interface</title>
+  <!--[if lt IE 9]>
+  <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+<style>
+body {
+	font-family: sans-serif;
+}
+#mainImg, #mainInp {
+	text-align: center;
+	position: relative;
+}
+#voiceRecInp {
+	width: 100%;
+	font-size: 200%;
+	text-align: center;
+}
+.doneListening {
+	background: #E1F5C4;
+}
+.stillListening {
+	background: #EDE574;
+}
+
+#visual {
+	background-image: url(img/test.png);
+	background-size: 1280px 720px;
+    background-repeat: no-repeat;
+    width: 1280px;
+    height: 720px;
+    position: relative;
+    margin: 10px auto;
+}
+
+#drawOverlay {
+	z-index: 500;
+	width: 100%;
+	height: 100%;
+}
+
+.lbl {
+	color: yellow;
+	font-size: 200%;
+	position: absolute;
+	z-index: 100;
+}
+.tc, .bc {
+	width: 100%;
+}
+.tc { top:0; }
+.bc { bottom:0; }
+.ml {
+	transform: rotate(270deg);
+	top:360px;
+	left:-1.5em;
+}
+.mr {
+	transform: rotate(90deg);
+	bottom:360px;
+	right:-1.5em;
+}
+
+#drawOverlay div {
+	border-radius: 5px;
+	position: absolute;
+}
+
+</style>
+</head>
+
+<body>
+<div id="mainImg">
+	<div id="visual" bkg="img/test.png"> 
+	<div id="drawOverlay"></div>
+	<div class="lbl tc">Robot/Front</div>
+	<div class="lbl bc">Human/Back</div>
+	<div class="lbl ml">Robot Left</div>
+	<div class="lbl mr">Robot Right</div>
+	</div>
+</div>
+<div id="mainInp">
+	<input type="text" id="voiceRecInp"></input>
+	<button onclick="startRec()" id="startRecBtn">Start Recording</button>
+</div>
+
+<script type="text/javascript">
+function $(e) {
+	return document.getElementById(e);
+}
+function startRec() {
+	$('startRecBtn').disabled = true;
+	$('startRecBtn').text = "Recording...";
+	recognition.start();
+}
+
+var nextStr="";
+var isNew=true;
+
+var recognizing;
+var recognition;
+if ('webkitSpeechRecognition' in window) {
+ 
+  recognition = new webkitSpeechRecognition();
+ 
+  recognition.continuous = false;
+  recognition.interimResults = true;
+ 
+  recognition.onstart = function() {
+    recognizing = true;
+  };
+ 
+  recognition.onerror = function(event) {
+    console.log(event.error);
+  };
+ 
+  recognition.onend = function() {
+    recognizing = false;
+    $('voiceRecInp').className = "doneListening";
+   	$('startRecBtn').disabled = false;
+   	$('startRecBtn').text = "Start Recording";       	
+  };
+ 
+  recognition.onresult = function(event) {
+    var interim_transcript = "";
+    for (var i = event.resultIndex; i < event.results.length; ++i) {
+    	// console.log(event.results[i][0].transcript);
+      if (event.results[i].isFinal) {
+        $('voiceRecInp').value = event.results[i][0].transcript;
+        nextStr = event.results[i][0].transcript;
+       	startDistUpdate(true, true);
+        recognition.stop();
+       	isNew = true;
+      }  else {
+      	interim_transcript += event.results[i][0].transcript;
+      }
+    }
+
+    if(interim_transcript != "") {
+      	$('voiceRecInp').value = interim_transcript;
+        nextStr = interim_transcript;
+        $('voiceRecInp').className = "stillListening";
+        startDistUpdate(false, false);
+        isNew = false;
+      }
+  };
+
+  recognition.lang = 'en-US';
+  startRec();
+}
+
+var pendingReq = 0;
+function updateDist(recv, final) {
+	if (oReq.readyState == 4) {
+		pendingReq--;
+		if (oReq.status == 200) {
+			// console.log(oReq.responseText);
+			var parts = oReq.responseText.split(",");
+			var dist = parts.map(k => parseFloat(k.split(":")[1]));
+			redrawDist(dist, final);
+ 		}
+	}
+
+}
+
+var pos = [[253, 391], [237, 547], [387, 262], [668, 360], [818, 494], [950, 272]];
+var minRad = 10;
+var vRad = 40;
+
+function redrawDist(dist, isFinal) {
+	var overlay = $('drawOverlay');
+	var lc;
+	while (lc = overlay.lastChild) {
+		overlay.removeChild(lc);
+	}
+
+	var maxInDist = dist.reduce((k, p) => Math.max(k, p), 0);
+	console.log(maxInDist);
+
+	dist.forEach(function(d, i) {
+		d = d / maxInDist;
+		if (isFinal && d < 0.95)
+			return;
+
+		var r = minRad + Math.round(vRad * d);
+		var n = document.createElement("div");
+		n.appendChild(document.createTextNode(" "));
+		n.style.left = (pos[i][0] - r/2) + "px";
+		n.style.top = (pos[i][1] - r/2) + "px";
+		n.style.width = r + "px";
+		n.style.height = r + "px";		
+		var col = (255 - Math.round(255 * d));
+		if(isFinal) {
+			n.style.border = "3px solid #000";
+		} else {
+			n.style.border = "3px solid rgb(255," + col + "," + col + ")";
+		}
+		overlay.appendChild(n);
+	});
+}
+
+var oReq;
+function startDistUpdate(force, isFinal) {
+	if(pendingReq > 0 && !force)
+		return;
+
+	pendingReq++;
+	// If there's nothing to send, then we don't send anything.
+	oReq = new XMLHttpRequest();
+	oReq.onreadystatechange = (x) => updateDist(x, isFinal);
+	oReq.open("GET", (isNew?"new":"update") + "?str=" + encodeURIComponent(nextStr));
+	oReq.send();
+}
+
+</script>
+</body>
+</html>
