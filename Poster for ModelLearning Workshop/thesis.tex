@@ -70,17 +70,19 @@
 \begin{framed}
 \section{Abstract}
 An important problem in human-robot interaction is that of referring expressions: phrases used to identify a particular object among others. Existing parsing models all operate on entire sentences. Incrementally parsing referring expressions is important for human-robot interaction and conversational feedback. We present a model for parsing real-word referring expressions, trained and tested on human-provided data. In our test corpus, when presented with the entire sentence, our model ranks the correct object as the most likely 60.3\% of the time, and ranks the correct object in the top three 79.0\% of the time. Given the entire sentence humans identify the correct object 79.0\% of the time. With 50\%, 80\% and 90\% of the sentence, the model ranks the correct object as the most likely 17.4\%, 27.8\%, and 36.2\% of the time. Our parser is capable of keeping up with human speech, with 80\% of all words processed on commodity hardware within 10ms, and 95\% of all words in about 300ms.
-
 \end{framed}
 
 \titlespacing*{\section}{0pt}{14pt plus 4pt}{0.7ex minus .2ex}
 
-
 \section{Introduction}
 
-Referring expressions are phrases used to identify a particular object in a scene by describing it and its relative position to other objects. The integration of \emph{social feedback}, where the robot shows its understanding of a human's utterances by generating small responses as it listens to the human, can prompt clarifications from the human and improve the accuracy of referring expression parsing in interactive contexts. However, this requires robots to be able to parse the human input \emph{incrementally}: updating its understanding as each next word is uttered. In this paper we present an incremental referring expression parser that can process prepositional phrases. 
+\begin{large}
 
-\section{Example}
+Referring expressions are phrases used to identify a particular object in a scene by describing it and its relative position to other objects. For example, the referring expression ``Orange cube between the toy and the tape roll'' indicates the circled object in the scene below. 
+
+In this paper we present an incremental referring expression parser that can process prepositional phrases. Figure 1 shows how our parser identifies the target object when presented with the referring expression one word at a time.
+
+\end{large}
 
 \newcommand{\inctest}[1]{\includegraphics[trim={0 3cm 5cm 3.5cm},clip,width=0.15\textwidth]{test_set_example/Slide#1}}
 \newcolumntype{L}{>{\centering\arraybackslash}m{0.15\textwidth}}
@@ -104,6 +106,7 @@ Referring expressions are phrases used to identify a particular object in a scen
 \begin{center}
 \textit{Figure 1: Example}
 \end{center}
+
 ~
 
 \section{Technical Approach}
@@ -170,8 +173,13 @@ We evaluate the tree from the bottom upwards, using spatial features and trained
 
 \section{Evaluation} 
 
-We collected a corpus of human-generated data using Human Intelligence Tasks (HITs) on the Amazon Mechanical Turk (AMT) platform and 19 hand-generated scenes, of which 10 were reserved for the test set. Scenes were similar to the example in Figure 1.  For each orange cube in each scene, 9 different workers produced  referring expressions and each expression was further evaluated by three separate human raters. 
+\begin{large}
 
+We collected a corpus of human-generated data using Human Intelligence Tasks (HITs) on the Amazon Mechanical Turk (AMT) platform and 19 hand-generated scenes, of which 10 were reserved for the test set. Scenes were similar to the example in Figure 1.  For each orange cube in each scene, 9 different workers produced  referring expressions and each expression was further evaluated by three separate human raters. 
+\end{large}
+
+
+\begin{comment}
 \begin{center}
   \begin{tabular}{| r r | c | c | c || c c |} \hline
      & & \multicolumn{5}{c|}{Rate of correct identification, Test (\%)} \\
@@ -189,29 +197,47 @@ We collected a corpus of human-generated data using Human Intelligence Tasks (HI
   
 \textit{Figure 3: Results}
 \end{center}
+\end{comment}
 
-Figure~3 shows the correctness rate of our algorithm when run on complete sentences, and of three baselines for comparison. The percentage next to each preposition is the fraction of sentences in the test set that contain this preposition, and so will not add up to 100\%. The baselines are:
-\begin{enumerate}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
-	\item The \emph{Human} baseline, which was established by having humans select the object best identified by the referring expression, and scoring them against our corpus.
-	\item The \emph{Unigram} baseline, which is the expectation of selecting the correct object using a simple unigram object model across the entire input sentence.
-	\item The \emph{Random} baseline, the expectation of selecting the correct object by selecting one at random.
-\end{enumerate}
+\begin{center}
+\includegraphics[width=0.9\columnwidth]{perf_graph}
 
-The \emph{Results} column lists the rate of correct identification using the entire sentence as input, the \emph{Top-1} column lists the rate at which the correct object is rated the most likely by the algorithm, and the \emph{Top-3} column lists the rate at which the correct object is in the top 3 items. Should there be a tie, the rate is divided by the number of items of equal probability.
+\textit{Figure 3: Results}
+\end{center}
+
+\begin{large}
+
+Figure~3 shows the correctness rate of our algorithm when run on complete sentences, and of the human baseline for comparison. 
+
+The charts on the left show the results for each preposition. The percentage next to each preposition is the fraction of sentences in the test set that contain this preposition, and so will not add up to 100\%. The chart on the right shows the total performance, giving equal weight to each referring expression in the test set.
+
+The \emph{Top-1} bar shows the rate at which the correct object is rated the most likely by the algorithm, and the \emph{Top-3} bar shows the rate at which the correct object is in the top 3 items.
 
 \subsection{Incremental Performance}
 
 To evaluate the performance of the incremental algorithm, we report correctness on the test set as a fraction of each sentence in Figure~4.
 
-Three separate lines are drawn to show the distribution of the rank of the correct option. Each Top-$k$ line includes an example if the target object has at least as much probability as the $k^\text{th}$-highest probability in the distribution. Should there be a tie, the rate is divided by the number of items of equal probability.
-
+\end{large}
 
 \begin{center}
-  \includegraphics[width=0.45\columnwidth]{eval/cdf_by_fraction}
-  \includegraphics[width=0.45\columnwidth]{time_inc}
+  \includegraphics[width=0.7\columnwidth]{eval/cdf_by_fraction}
   
-  \textit{Figure 4: Performance and time taken on test set.}
+  \textit{Figure 4: Performance on test set.}
 \end{center}
+
+\begin{large}
+
+Three separate lines are drawn to show the distribution of the rank of the correct option. Each Top-$k$ line includes an example if the target object has at least as much probability as the $k^\text{th}$-highest probability in the distribution. Should there be a tie, the rate is divided by the number of items of equal probability. We observe that the correctness rate increases smoothly as more of sentence is known, converging to the values in Figure 3.
+
+\end{large}
+
+\begin{center}
+  \includegraphics[width=0.7\columnwidth]{time_inc}
+  
+  \textit{Figure 5: Time taken on test set.}
+\end{center}
+
+\begin{large}
 
 We also measure the amount of time our implementation takes to process each word on commodity hardware, and we compute the observed cumulative density function. As can be seen in the right chart in Figure 4, 70\% of all words are processed within 1ms, and 90\% within 300ms -- quick enough to keep up with human speech.
 
@@ -219,19 +245,7 @@ We also measure the amount of time our implementation takes to process each word
 \section{Conclusion}
 In this paper we have presented an incremental referring expression parser that can process prepositional phrases. The incremental nature of the parser is the key contribution: state-of-the-art parsers all operate on complete referring expressions. The primary future task is to integrate this with the social feedback framework on Baxter in the H2R lab and conduct user studies to investigate if this provides a measurable improvement to user interaction.
 
-\section{Related Work}
-
-Prepositional phrases have not been subject to as much computational analysis and study as noun- and verb-phrases. The current research on the topic uses referring expressions as parts of larger phrases, such as commands. There is an existing family of related work by \citet{tellex2011understanding}, \citet{UW_RSE_ICML2012}, and \citet{artzi2013weakly}, all of whom present modern models to process referring expressions. These models all operate on entire input sentences and are designed to parse general instructions and commands instead of only prepositional phrases. 
-\citet{tellex2011understanding} present the $G^3$ framework. We use several key ideas from this paper: in particular we implicitly assume the binary correspondence variable that their model maximizes. Our algorithm is inspired in part by the algorithm they present.
-
-
-\section{Selected References}
-\nocite{artzi2013weakly}
-\nocite{tellex2011understanding}
-\nocite{UW_RSE_ICML2012}
-
-
-\printbibliography[heading=none]
+\end{large}
 
 \end{multicols*}
 
